@@ -88,8 +88,8 @@ async function getYouTubeSubs() {
 
   const res = await fetch(url);
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`YouTube API error ${res.status}: ${text}`);
+    // 🛡️ SECURITY: Avoid logging full body text
+    throw new Error(`YouTube API error ${res.status}`);
   }
 
   const data = await res.json();
@@ -122,7 +122,8 @@ async function getInstagramFollowers() {
   const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(`Instagram API error ${res.status}: ${JSON.stringify(data)}`);
+    // 🛡️ SECURITY: Log only the error message, not the full object which might contain reflected tokens
+    throw new Error(`Instagram API error ${res.status}: ${data?.error?.message || "Unknown error"}`);
   }
 
   if (data?.followers_count == null) {
@@ -212,7 +213,8 @@ async function getXFollowers() {
   const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(`X API error ${res.status}: ${JSON.stringify(data)}`);
+    // 🛡️ SECURITY: Log safe error details
+    throw new Error(`X API error ${res.status}: ${data?.detail || data?.title || "Unknown error"}`);
   }
 
   const count = data?.data?.public_metrics?.followers_count;
@@ -241,8 +243,7 @@ async function getBlueskyFollowers() {
 
   const res = await fetch(url);
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Bluesky API error ${res.status}: ${text}`);
+    throw new Error(`Bluesky API error ${res.status}`);
   }
 
   const data = await res.json();
