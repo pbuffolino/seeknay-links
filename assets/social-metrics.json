@@ -1,28 +1,31 @@
 {
-  "updatedAt": "2025-12-29T16:28:00Z",
+  "updatedAt": "2025-12-29T19:02:04.400Z",
   "youtube": {
-    "count": null,
-    "display": "",
-    "lastSuccessAt": null
+    "count": 136,
+    "display": "136 followers",
+    "lastSuccessAt": "2025-12-29T19:02:04.614Z"
   },
   "instagram": {
     "count": null,
     "display": "",
-    "lastSuccessAt": null
+    "lastSuccessAt": null,
+    "lastError": "Missing IG_ACCESS_TOKEN or IG_USER_ID"
   },
   "tiktok": {
     "count": null,
     "display": "",
-    "lastSuccessAt": null
+    "lastSuccessAt": null,
+    "lastError": "Missing TIKTOK_ACCESS_TOKEN"
   },
   "x": {
     "count": null,
     "display": "",
-    "lastSuccessAt": null
+    "lastSuccessAt": null,
+    "lastError": "Missing X_BEARER_TOKEN or X_USERNAME"
   },
   "bluesky": {
-    "count": null,
-    "display": "",
-    "lastSuccessAt": null
+    "count": 629,
+    "display": "629 followers",
+    "lastSuccessAt": "2025-12-29T19:02:04.932Z"
   }
 }
