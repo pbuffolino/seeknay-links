@@ -1,0 +1,49 @@
+# ⚠️ SECURITY: This workflow uses ${{ secrets.* }} to pass encrypted GitHub Secrets
+# as environment variables. Secrets are NEVER exposed in logs or commits.
+# Safe to commit publicly.
+
+name: Update Social Metrics
+
+on:
+  schedule:
+    # Run monthly at 2:17 PM UTC on the 1st of the month
+    - cron: "17 14 1 * *"
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write # Minimal required permission to commit changes
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Run the Node.js script to fetch new data
+      - name: Fetch and persist social metrics
+        env:
+          # 🔐 The following variables are mapped from GitHub Secrets
+          # To update these, go to Settings -> Secrets and variables -> Actions
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+          YT_CHANNEL_ID: ${{ secrets.YT_CHANNEL_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          X_USERNAME: ${{ secrets.X_USERNAME }}
+          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
+        run: node scripts/update-social-metrics.mjs
+
+      # Only commit if the metrics file actually changed to avoid empty commits
+      - name: Commit changes if needed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/social-metrics.json
+          git diff --cached --quiet || (git commit -m "chore: update social metrics [skip ci]" && git push)

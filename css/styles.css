@@ -358,7 +358,7 @@ body {
   /* Push to bottom */
   text-align: center;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   letter-spacing: 0.02em;
   padding-top: 16px;
 }

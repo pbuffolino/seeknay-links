@@ -1,0 +1,28 @@
+{
+  "updatedAt": "2025-12-29T16:28:00Z",
+  "youtube": {
+    "count": null,
+    "display": "",
+    "lastSuccessAt": null
+  },
+  "instagram": {
+    "count": null,
+    "display": "",
+    "lastSuccessAt": null
+  },
+  "tiktok": {
+    "count": null,
+    "display": "",
+    "lastSuccessAt": null
+  },
+  "x": {
+    "count": null,
+    "display": "",
+    "lastSuccessAt": null
+  },
+  "bluesky": {
+    "count": null,
+    "display": "",
+    "lastSuccessAt": null
+  }
+}

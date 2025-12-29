@@ -1,45 +1,52 @@
-function formatCount(count) {
-    if (!count) return '';
-    if (count >= 1000000) {
-        return (count / 1000000).toFixed(1) + 'M followers';
-    } else if (count >= 1000) {
-        return (count / 1000).toFixed(1) + 'k followers';
-    }
-    return count + ' followers';
-}
-
-async function fetchBluesky(el) {
+/**
+ * Load social metrics from the static JSON file.
+ * This file is generated/updated monthly by GitHub Actions in the .github/workflows directory.
+ * @returns {Promise<object|null>} - The metrics object or null if loading fails
+ */
+async function loadSocialMetrics() {
     try {
-        const res = await fetch('https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=seeknay.com');
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
-        el.textContent = formatCount(data.followersCount);
+        // Fetch the static asset (no API keys required here!)
+        const res = await fetch('assets/social-metrics.json');
+        if (!res.ok) throw new Error('Failed to load social metrics');
+        return await res.json();
     } catch (e) {
-        console.warn('Bluesky fetch failed', e);
+        console.warn('Failed to load social metrics:', e);
+        return null;
     }
 }
 
+/**
+ * MAIN: Orchestrates the update of all follower count elements on the page.
+ * Triggered on DOMContentLoaded.
+ */
 async function updateFollowers() {
+    // Select all elements designed to hold follower counts
     const elements = document.querySelectorAll('.link-followers');
 
-    elements.forEach(el => {
-        const network = el.dataset.network;
-        if (network === 'bluesky') {
-            fetchBluesky(el);
-        }
+    // Load metrics from the pre-generated JSON file
+    const metrics = await loadSocialMetrics();
 
-        // Example for YouTube (requires API Key):
-        // if (network === 'youtube') {
-        //     const channelId = 'YourChannelID';
-        //     const apiKey = 'YourAPIKey';
-        //     fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}&key=${apiKey}`)
-        //         .then(res => res.json())
-        //         .then(data => {
-        //             const count = data.items[0].statistics.subscriberCount;
-        //             el.textContent = formatCount(count);
-        //         })
-        //         .catch(console.error);
-        // }
+    elements.forEach(el => {
+        // The data-network attribute in index.html MUST match the key in social-metrics.json
+        const network = el.dataset.network;
+
+        // Implementation Note: All platforms (including Bluesky) are now 
+        // managed by the GitHub Actions background script.
+        if (metrics && metrics[network]) {
+            const platformData = metrics[network];
+
+            // Only show the count if we have a valid, non-empty display string
+            if (platformData.display && platformData.display.trim() !== "") {
+                el.textContent = platformData.display;
+                el.style.display = 'inline'; // Make visible
+            } else {
+                // Hide completely to avoid showing empty parens or placeholders
+                el.style.display = 'none';
+            }
+        } else {
+            // Hide if the network is missing from JSON entirely
+            el.style.display = 'none';
+        }
     });
 }
 

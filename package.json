@@ -1,0 +1,11 @@
+{
+    "name": "seeknay-links",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Social links page with automated follower count updates",
+    "scripts": {
+        "update-metrics": "node scripts/update-social-metrics.mjs"
+    },
+    "author": "seeknay",
+    "license": "MIT"
+}

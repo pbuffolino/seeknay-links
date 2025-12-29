@@ -17,7 +17,7 @@
   - Open Graph and Twitter Card meta tags
   - Performance optimizations (preconnect hints)
 - **📊 Analytics**: Google Analytics 4 (GA4) integration with click tracking
-- **👥 Dynamic Follower Counts**: Real-time follower count display for supported platforms (Bluesky)
+- **👥 Dynamic Follower Counts**: Automated follower count display for supported platforms (YouTube, Instagram, TikTok, X, Bluesky) using GitHub Actions.
 - **📋 Copy-to-Clipboard**: One-click email copy functionality
 - **⚡ Zero Dependencies**: Pure HTML/CSS/JavaScript - no build tools required
 
@@ -27,15 +27,21 @@
 
 ```text
 seeknay-links/
-├── assets/             # Static images
+├── assets/             # Static images and metrics
 │   ├── avatar.jpg      # Profile avatar
-│   └── og.png          # Open Graph preview image
+│   ├── og.png          # Open Graph preview image
+│   └── social-metrics.json # Persistent follower counts (updated by GitHub Actions)
 ├── css/
 │   └── styles.css      # Main stylesheet with CSS custom properties
 ├── js/
 │   ├── analytics.js    # GA4 tracking & link click event handling
-│   └── followers.js    # Dynamic follower count fetching (Bluesky API)
+│   └── followers.js    # Renders metrics from JSON and fetches Bluesky live
+├── scripts/
+│   └── update-social-metrics.mjs # GitHub Actions background update script
+├── .github/workflows/
+│   └── update-social-metrics.yml # Scheduled daily update workflow
 ├── index.html          # Main HTML entry point
+├── package.json        # Node.js project config for background scripts
 ├── robots.txt          # Search engine crawler directives
 ├── sitemap.xml         # Site map for SEO
 ├── CNAME               # Custom domain configuration
@@ -131,10 +137,10 @@ The main entry point contains:
 - Events tracked: `click_link` with `link_name` and `link_url` parameters
 
 #### `js/followers.js`
-- Fetches real-time follower counts from platform APIs
-- **Currently Supported**: Bluesky (via AT Protocol API)
-- **Extensible**: Add TikTok, YouTube, Instagram by implementing their APIs
-- Gracefully fails if API is unavailable (no follower count shown)
+- Renders follower counts from `assets/social-metrics.json`.
+- **Bluesky**: Still fetched directly via client-side API (public API, no auth).
+- **Other Platforms**: Displays "last known" count from the static JSON file.
+- **Security**: Contains NO API keys or credentials. Safe for public browsers.
 
 ### Development Rules
 
@@ -166,8 +172,8 @@ The main entry point contains:
 2. **Update JSON-LD** (`index.html`):
    Add the new URL to the `"sameAs"` array in the structured data script.
 
-3. **(Optional) Add Follower Count**:
-   Extend `js/followers.js` to fetch and display follower counts for the new platform.
+3. **Verify automated updates**:
+   The follower counts are updated monthly via GitHub Actions. Ensure the keys are set in GitHub Secrets (see below).
 
 ---
 
@@ -199,7 +205,34 @@ This site is configured for **GitHub Pages** with a custom domain:
 3. **Custom Domain**: `links.seeknay.com` (set in `CNAME` file)
 4. **SSL**: Automatically provided by GitHub Pages
 
-**Deployment is automatic**: Push to `main` branch and changes go live within ~1 minute.
+## 👥 Social Metrics & GitHub Actions
+
+This project uses a hybrid approach for follower counts:
+1. **Bluesky**: Live client-side fetch (no auth required).
+2. **YouTube, Instagram, TikTok, X**: Updated monthly via GitHub Actions and stored in `assets/social-metrics.json`.
+
+### 🔒 Security & GitHub Secrets
+**NEVER commit API keys or tokens to this repository.** This is a public repository. All credentials MUST be stored in **GitHub Secrets**.
+
+To set up the automated updates:
+1. Go to your repository on GitHub.
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**.
+3. Add the following secrets:
+
+| Secret Name | Platform | Usage |
+|-------------|----------|-------|
+| `YT_API_KEY` | YouTube | YouTube Data API v3 Key |
+| `YT_CHANNEL_ID` | YouTube | Your Channel ID (e.g. `UC...`) |
+| `IG_ACCESS_TOKEN` | Instagram | Long-lived Graph API Token |
+| `IG_USER_ID` | Instagram | Your Instagram Business ID |
+| `TIKTOK_ACCESS_TOKEN` | TikTok | OAuth Access Token |
+| `X_BEARER_TOKEN` | X/Twitter | API v2 Bearer Token |
+| `X_USERNAME` | X/Twitter | Your username (without @) |
+| `BSKY_HANDLE` | Bluesky | Your handle (e.g. `seeknay.com`) |
+
+### Troubleshooting
+- **Last Known Count**: If an API call fails or a token expires, the site will continue to show the last successful count stored in `assets/social-metrics.json`.
+- **Manual Trigger**: You can manually trigger an update from the **Actions** tab by selecting the "Update Social Metrics" workflow and clicking "Run workflow".
 
 ---
 
