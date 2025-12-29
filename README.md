@@ -225,7 +225,9 @@ To set up the automated updates:
 | `YT_CHANNEL_ID` | YouTube | Your Channel ID (e.g. `UC...`) |
 | `IG_ACCESS_TOKEN` | Instagram | Long-lived Graph API Token |
 | `IG_USER_ID` | Instagram | Your Instagram Business ID |
-| `TIKTOK_ACCESS_TOKEN` | TikTok | OAuth Access Token |
+| `TIKTOK_SESSION_ID` | TikTok | `sessionid` cookie from browser |
+| `TIKTOK_MS_TOKEN` | TikTok | `msToken` cookie from browser |
+| `TIKTOK_USERNAME` | TikTok | Your username (e.g. `seeknay747`) |
 | `X_BEARER_TOKEN` | X/Twitter | API v2 Bearer Token |
 | `X_USERNAME` | X/Twitter | Your username (without @) |
 | `BSKY_HANDLE` | Bluesky | Your handle (e.g. `seeknay.com`) |

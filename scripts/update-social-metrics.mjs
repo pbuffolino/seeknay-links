@@ -137,32 +137,47 @@ async function getInstagramFollowers() {
 }
 
 /**
- * Fetch TikTok follower count
- * Requires: TIKTOK_ACCESS_TOKEN
+ * Fetch TikTok follower count (Session-based approach)
+ * Requires: TIKTOK_SESSION_ID, TIKTOK_MS_TOKEN, TIKTOK_USERNAME
  */
 async function getTikTokFollowers() {
-  const token = process.env.TIKTOK_ACCESS_TOKEN;
+  const sessionId = process.env.TIKTOK_SESSION_ID;
+  const msToken = process.env.TIKTOK_MS_TOKEN || "";
+  const username = process.env.TIKTOK_USERNAME || "seeknay747";
 
-  if (!token) {
-    throw new Error("Missing TIKTOK_ACCESS_TOKEN");
+  if (!sessionId) {
+    throw new Error("Missing TIKTOK_SESSION_ID");
   }
 
-  const url = `https://open.tiktokapis.com/v2/user/info/?fields=open_id,username,follower_count`;
+  // Use TikTok's internal Web API which works with browser session cookies
+  const url = `https://www.tiktok.com/api/user/detail/?uniqueId=${encodeURIComponent(
+    username
+  )}&msToken=${encodeURIComponent(msToken)}`;
 
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Cookie: `sessionid=${sessionId}; msToken=${msToken}`,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept: "application/json, text/plain, */*",
+      Referer: `https://www.tiktok.com/@${username}`,
+    },
   });
 
-  const data = await res.json();
-
   if (!res.ok) {
-    throw new Error(`TikTok API error ${res.status}: ${JSON.stringify(data)}`);
+    throw new Error(`TikTok Web API failed with status ${res.status}`);
   }
 
-  const count = data?.data?.user?.follower_count;
+  const data = await res.json();
+  const count = data?.userInfo?.stats?.followerCount;
 
   if (count == null) {
-    throw new Error("follower_count missing (requires user.info.stats scope)");
+    if (data?.status_code === 10222) {
+      throw new Error("TikTok session expired/invalid (status 10222)");
+    }
+    throw new Error(
+      `follower_count missing (Status: ${data?.status_code || "unknown"})`
+    );
   }
 
   return Number(count);

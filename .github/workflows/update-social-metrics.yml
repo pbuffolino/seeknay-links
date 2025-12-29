@@ -34,7 +34,9 @@ jobs:
           YT_CHANNEL_ID: ${{ secrets.YT_CHANNEL_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+          TIKTOK_SESSION_ID: ${{ secrets.TIKTOK_SESSION_ID }}
+          TIKTOK_MS_TOKEN: ${{ secrets.TIKTOK_MS_TOKEN }}
+          TIKTOK_USERNAME: ${{ secrets.TIKTOK_USERNAME }}
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
           X_USERNAME: ${{ secrets.X_USERNAME }}
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
