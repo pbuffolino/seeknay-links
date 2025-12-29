@@ -12,13 +12,9 @@ const OUT = "assets/social-metrics.json";
  */
 function formatCount(count) {
   if (typeof count !== "number" || !Number.isFinite(count)) return null;
-  if (count >= 1_000_000) {
-    return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, "")}M followers`;
-  }
-  if (count >= 1_000) {
-    return `${(count / 1_000).toFixed(1).replace(/\.0$/, "")}k followers`;
-  }
-  return `${count} followers`;
+  // Use exact count with comma separators (e.g., 11,234 followers)
+  const formatted = new Intl.NumberFormat("en-US").format(count);
+  return `${formatted} followers`;
 }
 
 /**
