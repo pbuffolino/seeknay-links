@@ -1,9 +1,9 @@
 {
-  "updatedAt": "2025-12-29T19:44:32.054Z",
+  "updatedAt": "2025-12-29T19:45:29.553Z",
   "youtube": {
     "count": 136,
     "display": "136 followers",
-    "lastSuccessAt": "2025-12-29T19:44:32.227Z"
+    "lastSuccessAt": "2025-12-29T19:45:29.758Z"
   },
   "instagram": {
     "count": null,
@@ -15,7 +15,7 @@
     "count": null,
     "display": "",
     "lastSuccessAt": null,
-    "lastError": "Unexpected end of JSON input"
+    "lastError": "TikTok response was not valid JSON. First 100 chars: ..."
   },
   "x": {
     "count": null,
@@ -26,6 +26,6 @@
   "bluesky": {
     "count": 629,
     "display": "629 followers",
-    "lastSuccessAt": "2025-12-29T19:44:33.057Z"
+    "lastSuccessAt": "2025-12-29T19:45:30.181Z"
   }
 }
