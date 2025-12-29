@@ -1,34 +1,60 @@
+/* ===================================
+   CSS CUSTOM PROPERTIES (VARIABLES)
+   =================================== */
 :root {
   color-scheme: light;
+
+  /* Color Palette */
   --bg: #f8fafc;
+  /* Slate 50 - Background */
   --card: #ffffff;
+  /* White - Card backgrounds */
   --accent: #4f46e5;
+  /* Indigo 600 - Primary accent color */
   --text: #0f172a;
+  /* Slate 900 - Primary text */
   --muted: #64748b;
+  /* Slate 500 - Secondary/muted text */
   --border: #e2e8f0;
+  /* Slate 200 - Default border color */
   --hover-border: #c7d2fe;
+  /* Indigo 200 - Hover state border */
+
+  /* Shadow System */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
 }
 
+/* ===================================
+   GLOBAL RESET
+   =================================== */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+/* ===================================
+   BASE STYLES
+   =================================== */
 body {
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Gradient background with subtle radial glows in corners */
   background:
     radial-gradient(800px 800px at 0% 0%, rgba(79, 70, 229, 0.08), transparent 60%),
     radial-gradient(600px 600px at 100% 100%, rgba(14, 165, 233, 0.08), transparent 60%),
     var(--bg);
+
   color: var(--text);
   line-height: 1.5;
 }
 
+/* ===================================
+   PAGE CONTAINER
+   =================================== */
 .page {
   min-height: 100vh;
   padding: 48px 24px 64px;
@@ -39,11 +65,16 @@ body {
   gap: 32px;
 }
 
+/* ===================================
+   HERO SECTION (Avatar + Bio)
+   =================================== */
 .hero {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 8px;
+  text-align: center;
+  gap: 16px;
+  margin-bottom: 12px;
   padding: 0 8px;
 }
 
@@ -51,7 +82,7 @@ body {
   width: 96px;
   height: 96px;
   border-radius: 9999px;
-  /* Fully rounded for a friendlier look */
+  /* Fully rounded circle */
   border: 4px solid var(--card);
   box-shadow: var(--shadow-md);
   background-color: var(--card);
@@ -62,6 +93,7 @@ body {
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  /* Slight negative tracking for modern look */
   color: var(--text);
   margin-bottom: 6px;
 }
@@ -78,11 +110,15 @@ body {
 
 .tagline {
   color: var(--muted);
-  font-size: 1.05rem;
-  max-width: 100%;
-  line-height: 1.5;
+  font-size: 1rem;
+  max-width: 460px;
+  line-height: 1.6;
+  margin: 0 auto;
 }
 
+/* ===================================
+   SOCIAL LINKS SECTION
+   =================================== */
 .links {
   display: grid;
   gap: 16px;
@@ -96,19 +132,20 @@ body {
   justify-content: space-between;
   gap: 12px;
   border-radius: 20px;
-  /* Softer corners */
   background: var(--card);
   border: 1px solid var(--border);
   text-decoration: none;
   color: var(--text);
   box-shadow: var(--shadow-sm);
 
-  /* Animation */
+  /* Entry animation - starts hidden and slides up */
   opacity: 0;
   transform: translateY(12px);
   animation: buttonIn 600ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   animation-delay: var(--delay);
+  /* Custom property set inline per button */
 
+  /* Smooth hover transitions */
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -149,29 +186,37 @@ body {
   transition: transform 0.2s ease, color 0.2s ease;
 }
 
+/* Link Button Hover States */
 .link-button:hover,
 .link-button:focus-visible {
   border-color: var(--hover-border);
   box-shadow: var(--shadow-md), 0 0 0 3px rgba(79, 70, 229, 0.05);
-  /* Focus ring */
+  /* Focus ring effect */
   transform: translateY(-2px);
+  /* Subtle lift effect */
 }
 
 .link-button:hover .link-icon {
   transform: scale(1.1);
+  /* Icon grows on hover */
 }
 
 .link-button:hover .link-arrow {
   color: var(--accent);
   transform: translate(2px, -2px);
+  /* Arrow moves diagonally */
   opacity: 1;
 }
 
 .link-button:active {
   transform: translateY(0);
+  /* Reset position on click */
   box-shadow: var(--shadow-sm);
 }
 
+/* ===================================
+   CONTACT SECTION
+   =================================== */
 .contact-card {
   display: flex;
   align-items: center;
@@ -212,6 +257,9 @@ body {
   color: var(--accent);
 }
 
+/* ===================================
+   COPY-TO-CLIPBOARD BUTTON
+   =================================== */
 .copy-button {
   position: relative;
   width: 56px;
@@ -232,6 +280,7 @@ body {
 .copy-button:hover,
 .copy-button:focus-visible {
   background: #e2e8f0;
+  /* Slate 200 */
   transform: scale(1.05);
 }
 
@@ -239,13 +288,14 @@ body {
   transform: scale(0.95);
 }
 
+/* Copy/Check Icon Toggle States */
 .icon-check {
   position: absolute;
   opacity: 0;
   transform: scale(0.5);
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   color: #10b981;
-  /* Green 500 */
+  /* Green 500 - Success color */
 }
 
 .icon-copy {
@@ -253,6 +303,7 @@ body {
   color: var(--muted);
 }
 
+/* Tooltip for "Copied!" feedback */
 .copy-tooltip {
   position: absolute;
   top: -40px;
@@ -271,7 +322,7 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
-/* Tooltip arrow */
+/* Tooltip arrow (small triangle at bottom) */
 .copy-tooltip::after {
   content: '';
   position: absolute;
@@ -283,6 +334,7 @@ body {
   transform: rotate(45deg);
 }
 
+/* Active state when copy button is clicked */
 .copy-button.is-copied .icon-copy {
   opacity: 0;
   transform: scale(0.5);
@@ -298,8 +350,12 @@ body {
   transform: translateY(0);
 }
 
+/* ===================================
+   FOOTER
+   =================================== */
 .footer {
   margin-top: auto;
+  /* Push to bottom */
   text-align: center;
   color: var(--muted);
   font-size: 0.85rem;
@@ -307,6 +363,9 @@ body {
   padding-top: 16px;
 }
 
+/* ===================================
+   ANIMATIONS
+   =================================== */
 @keyframes buttonIn {
   from {
     opacity: 0;
@@ -319,12 +378,17 @@ body {
   }
 }
 
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
 @media (min-width: 640px) {
   .hero-text h1 {
     font-size: 2.25rem;
+    /* Larger heading on bigger screens */
   }
 
   .link-button {
     padding: 0 28px;
+    /* More breathing room */
   }
 }
