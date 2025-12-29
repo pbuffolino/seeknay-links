@@ -149,49 +149,48 @@ async function getTikTokFollowers() {
     throw new Error("Missing TIKTOK_SESSION_ID");
   }
 
-  // Use TikTok's internal Web API which works with browser session cookies
   const url = `https://www.tiktok.com/api/user/detail/?uniqueId=${encodeURIComponent(
     username
   )}&msToken=${encodeURIComponent(msToken)}`;
 
-  const res = await fetch(url, {
+  // Attempt 1: Internal API (Fastest)
+  const apiRes = await fetch(url, {
     headers: {
       "Cookie": `sessionid=${sessionId}`,
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       "Accept": "application/json, text/plain, */*",
-      "Accept-Language": "en-US,en;q=0.9",
       "Referer": "https://www.tiktok.com/",
-      "sec-fetch-dest": "empty",
-      "sec-fetch-mode": "cors",
-      "sec-fetch-site": "same-origin"
     },
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`TikTok Web API failed with status ${res.status}: ${text.slice(0, 100)}...`);
-  }
-
-  let data;
-  const text = await res.text();
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    throw new Error(`TikTok response was not valid JSON. First 100 chars: ${text.slice(0, 100)}...`);
-  }
-
-  const count = data?.userInfo?.stats?.followerCount;
-
-  if (count == null) {
-    if (data?.status_code === 10222) {
-      throw new Error("TikTok session expired/invalid (status 10222)");
+  if (apiRes.ok) {
+    const text = await apiRes.text();
+    try {
+      const data = JSON.parse(text);
+      const count = data?.userInfo?.stats?.followerCount;
+      if (count != null) return Number(count);
+    } catch (e) {
+      // Fall through to scraping
     }
-    throw new Error(
-      `follower_count missing (Status: ${data?.status_code || "unknown"})`
-    );
   }
 
-  return Number(count);
+  // Attempt 2: Scrape Profile Page (More Reliable)
+  const pageRes = await fetch(`https://www.tiktok.com/@${username}`, {
+    headers: {
+      "Cookie": `sessionid=${sessionId}`,
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    },
+  });
+
+  const html = await pageRes.text();
+
+  // Look for the "followerCount":1234 pattern in the embedded JSON
+  const match = html.match(/"followerCount":\s*(\d+)/);
+  if (match && match[1]) {
+    return Number(match[1]);
+  }
+
+  throw new Error("Could not find follower count in API or profile page HTML");
 }
 
 /**
