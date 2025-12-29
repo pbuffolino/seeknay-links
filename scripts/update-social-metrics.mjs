@@ -165,10 +165,18 @@ async function getTikTokFollowers() {
   });
 
   if (!res.ok) {
-    throw new Error(`TikTok Web API failed with status ${res.status}`);
+    const text = await res.text();
+    throw new Error(`TikTok Web API failed with status ${res.status}: ${text.slice(0, 100)}...`);
   }
 
-  const data = await res.json();
+  let data;
+  const text = await res.text();
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    throw new Error(`TikTok response was not valid JSON. First 100 chars: ${text.slice(0, 100)}...`);
+  }
+
   const count = data?.userInfo?.stats?.followerCount;
 
   if (count == null) {
