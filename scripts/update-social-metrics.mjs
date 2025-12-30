@@ -167,8 +167,11 @@ async function getTikTokFollowers() {
       const count = data?.userInfo?.stats?.followerCount;
       if (count != null) return Number(count);
     } catch (e) {
+      console.log("⚠️ TikTok Internal API failed, falling back to scrape:", e.message);
       // Fall through to scraping
     }
+  } else {
+    console.log(`⚠️ TikTok Internal API responded with ${apiRes.status}, falling back to scrape`);
   }
 
   // Attempt 2: Scrape Profile Page (More Reliable)

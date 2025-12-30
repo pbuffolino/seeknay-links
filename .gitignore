@@ -18,3 +18,8 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Debug & Temp
+debug_*
+*.tmp
+*.log
