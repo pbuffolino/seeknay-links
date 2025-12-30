@@ -17,7 +17,7 @@
   - Open Graph and Twitter Card meta tags
   - Performance optimizations (preconnect hints)
 - **📊 Analytics**: Google Analytics 4 (GA4) integration with click tracking
-- **👥 Dynamic Follower Counts**: Automated follower count display for supported platforms (YouTube, Instagram, TikTok, X, Bluesky) using GitHub Actions.
+- **👥 Dynamic Follower Counts**: Automated follower count display for all platforms (YouTube, Instagram, TikTok, X, Bluesky) using GitHub Actions.
 - **📋 Copy-to-Clipboard**: One-click email copy functionality
 - **⚡ Zero Dependencies**: Pure HTML/CSS/JavaScript - no build tools required
 
@@ -35,11 +35,11 @@ seeknay-links/
 │   └── styles.css      # Main stylesheet with CSS custom properties
 ├── js/
 │   ├── analytics.js    # GA4 tracking & link click event handling
-│   └── followers.js    # Renders metrics from JSON and fetches Bluesky live
+│   └── followers.js    # Renders metrics from JSON
 ├── scripts/
-│   └── update-social-metrics.mjs # GitHub Actions background update script
+│   └── update-social-metrics.mjs # GitHub Actions background update script (Node.js)
 ├── .github/workflows/
-│   └── update-social-metrics.yml # Scheduled daily update workflow
+│   └── update-social-metrics.yml # Scheduled monthly update workflow
 ├── index.html          # Main HTML entry point
 ├── package.json        # Node.js project config for background scripts
 ├── robots.txt          # Search engine crawler directives
@@ -114,7 +114,8 @@ The main entry point contains:
 ```html
 <span class="link-info-group">
   <span class="link-label">Platform</span>
-  <span class="link-followers" data-network="platform"></span> <!-- Updated by followers.js -->
+  <!-- data-network MUST match a key in assets/social-metrics.json -->
+  <span class="link-followers" data-network="platform"></span> 
 </span>
 ```
 
@@ -137,9 +138,8 @@ The main entry point contains:
 - Events tracked: `click_link` with `link_name` and `link_url` parameters
 
 #### `js/followers.js`
-- Renders follower counts from `assets/social-metrics.json`.
-- **Bluesky**: Still fetched directly via client-side API (public API, no auth).
-- **Other Platforms**: Displays "last known" count from the static JSON file.
+- Renders follower counts exclusively from `assets/social-metrics.json`.
+- **Pure Display Logic**: Does NO fetching or API calls. All data is pre-fetched by GitHub Actions.
 - **Security**: Contains NO API keys or credentials. Safe for public browsers.
 
 ### Development Rules
@@ -163,7 +163,10 @@ The main entry point contains:
       style="--delay: 250ms"> <!-- Increment delay by 50ms -->
      <span class="link-main">
        <i class="fa-brands fa-newplatform link-icon"></i>
-       <span class="link-label">NewPlatform</span>
+       <span class="link-info-group">
+         <span class="link-label">NewPlatform</span>
+         <span class="link-followers" data-network="newplatform"></span>
+       </span>
      </span>
      <i class="fa-solid fa-arrow-up-right-from-square link-arrow"></i>
    </a>
@@ -173,7 +176,9 @@ The main entry point contains:
    Add the new URL to the `"sameAs"` array in the structured data script.
 
 3. **Verify automated updates**:
-   The follower counts are updated monthly via GitHub Actions. Ensure the keys are set in GitHub Secrets (see below).
+   - Add logic to `scripts/update-social-metrics.mjs` to fetch count.
+   - Add new key to `assets/social-metrics.json`.
+   - Update `on: schedule` frequency if needed in workflow.
 
 ---
 
@@ -207,9 +212,10 @@ This site is configured for **GitHub Pages** with a custom domain:
 
 ## 👥 Social Metrics & GitHub Actions
 
-This project uses a hybrid approach for follower counts:
-1. **Bluesky**: Live client-side fetch (no auth required).
-2. **YouTube, Instagram, TikTok, X**: Updated monthly via GitHub Actions and stored in `assets/social-metrics.json`.
+This project uses a **Unified Background Update** approach for follower counts:
+1. **Source of Truth**: `assets/social-metrics.json`
+2. **Mechanism**: `scripts/update-social-metrics.mjs` runs via GitHub Actions.
+3. **Schedule**: Monthly (1st of the month) to retain API quotas and reduce churn.
 
 ### 🔒 Security & GitHub Secrets
 **NEVER commit API keys or tokens to this repository.** This is a public repository. All credentials MUST be stored in **GitHub Secrets**.

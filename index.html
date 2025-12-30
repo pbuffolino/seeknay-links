@@ -95,7 +95,7 @@
           <i class="fa-brands fa-tiktok link-icon" aria-hidden="true"></i>
           <span class="link-info-group">
             <span class="link-label">TikTok</span>
-            <!-- ℹ️ data-network MUST match the key in assets/social-metrics.json -->
+            <!-- ℹ️ data-network value matches key in assets/social-metrics.json -->
             <span class="link-followers" data-network="tiktok"></span>
           </span>
         </span>
@@ -109,7 +109,7 @@
           <i class="fa-brands fa-youtube link-icon" aria-hidden="true"></i>
           <span class="link-info-group">
             <span class="link-label">YouTube</span>
-            <!-- ℹ️ data-network MUST match the key in assets/social-metrics.json -->
+            <!-- ℹ️ data-network value matches key in assets/social-metrics.json -->
             <span class="link-followers" data-network="youtube"></span>
           </span>
         </span>
@@ -123,7 +123,7 @@
           <i class="fa-brands fa-instagram link-icon" aria-hidden="true"></i>
           <span class="link-info-group">
             <span class="link-label">Instagram</span>
-            <!-- ℹ️ data-network MUST match the key in assets/social-metrics.json -->
+            <!-- ℹ️ data-network value matches key in assets/social-metrics.json -->
             <span class="link-followers" data-network="instagram"></span>
           </span>
         </span>
@@ -137,14 +137,20 @@
           <i class="fa-solid fa-cloud link-icon" aria-hidden="true"></i>
           <span class="link-info-group">
             <span class="link-label">Bluesky</span>
-            <!-- ℹ️ data-network MUST match the key in assets/social-metrics.json -->
+            <!-- ℹ️ data-network value matches key in assets/social-metrics.json -->
             <span class="link-followers" data-network="bluesky"></span>
           </span>
         </span>
         <i class="fa-solid fa-arrow-up-right-from-square link-arrow" aria-hidden="true"></i>
       </a>
 
-      <!-- Twitter (HIDDEN - Preserving Integration Work) -->
+      <!-- Twitter / X (Currently Hidden) -->
+      <!-- 
+        NOTE: This link is temporarily hidden from the UI but preserved here for future use.
+        To re-enable:
+        1. Uncomment this block.
+        2. Ensure 'x' key exists in assets/social-metrics.json.
+      -->
       <!--
       <a class="link-button" data-link-name="Twitter" data-link-url="https://twitter.com/seeknay"
         href="https://twitter.com/seeknay" rel="noopener noreferrer" style="--delay: 200ms">

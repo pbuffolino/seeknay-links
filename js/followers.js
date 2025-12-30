@@ -1,4 +1,12 @@
 /**
+ * FOLLOWERS MODULE
+ * Renders social media follower counts on the page.
+ * 
+ * NOTE: All data (including Bluesky) is now pre-fetched by GitHub Actions 
+ * and stored in 'assets/social-metrics.json'. This script strictly READS 
+ * that static file and updates the DOM. It does NOT make external API calls.
+ */
+/**
  * Load social metrics from the static JSON file.
  * This file is generated/updated monthly by GitHub Actions in the .github/workflows directory.
  * @returns {Promise<object|null>} - The metrics object or null if loading fails

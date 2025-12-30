@@ -1,3 +1,9 @@
+/**
+ * ANALYTICS MODULE
+ * Initializes Google Analytics 4 (GA4) and handles event tracking.
+ * - Tracks 'link_click' events with custom parameters
+ * - Handles 'contact_copy' events
+ */
 window.dataLayer = window.dataLayer || [];
 function gtag() {
   window.dataLayer.push(arguments);
