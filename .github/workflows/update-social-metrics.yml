@@ -6,8 +6,8 @@ name: Update Social Metrics
 
 on:
   schedule:
-    # Run monthly at 2:17 PM UTC on the 1st of the month
-    - cron: "17 14 1 * *"
+    # Run daily at 2:17 PM UTC
+    - cron: "17 14 * * *"
   workflow_dispatch: # Allow manual trigger
 
 permissions:

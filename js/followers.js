@@ -8,7 +8,7 @@
  */
 /**
  * Load social metrics from the static JSON file.
- * This file is generated/updated monthly by GitHub Actions in the .github/workflows directory.
+ * This file is generated/updated daily by GitHub Actions in the .github/workflows directory.
  * @returns {Promise<object|null>} - The metrics object or null if loading fails
  */
 async function loadSocialMetrics() {
