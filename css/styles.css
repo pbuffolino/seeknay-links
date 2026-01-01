@@ -30,12 +30,16 @@
 
 /* Dark Mode Overrides */
 body.dark-mode {
+  /* Adjusted color palette for dark mode */
+  --accent: #818cf8;
+  /* Indigo 400 - Lighter for dark backgrounds */
+  --hover-border: rgba(129, 140, 248, 0.5);
+
   --bg: #0f172a;
   --card: rgba(30, 41, 59, 0.75);
   --text: #f8fafc;
   --muted: #94a3b8;
   --border: rgba(255, 255, 255, 0.1);
-  --hover-border: rgba(99, 102, 241, 0.5);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 
