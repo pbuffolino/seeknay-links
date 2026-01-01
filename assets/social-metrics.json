@@ -1,20 +1,19 @@
 {
-  "updatedAt": "2025-12-31T14:34:27.183Z",
+  "updatedAt": "2026-01-01T14:34:17.184Z",
   "youtube": {
-    "count": 137,
-    "display": "137 followers",
-    "lastSuccessAt": "2025-12-31T14:34:27.611Z"
+    "count": 138,
+    "display": "138 followers",
+    "lastSuccessAt": "2026-01-01T14:34:17.602Z"
   },
   "instagram": {
-    "count": 596,
-    "display": "596 followers",
-    "lastSuccessAt": "2025-12-31T14:34:28.427Z"
+    "count": 597,
+    "display": "597 followers",
+    "lastSuccessAt": "2026-01-01T14:34:18.337Z"
   },
   "tiktok": {
     "count": 11000,
     "display": "11,000 followers",
-    "lastSuccessAt": "2025-12-30T05:27:51.067Z",
-    "lastError": "Could not find follower count in API or profile page HTML"
+    "lastSuccessAt": "2026-01-01T14:34:19.119Z"
   },
   "x": {
     "count": null,
@@ -25,6 +24,6 @@
   "bluesky": {
     "count": 629,
     "display": "629 followers",
-    "lastSuccessAt": "2025-12-31T14:34:29.027Z"
+    "lastSuccessAt": "2026-01-01T14:34:19.253Z"
   }
 }
