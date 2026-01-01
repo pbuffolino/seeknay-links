@@ -127,11 +127,14 @@
           <p class="eyebrow">Welcome</p>
           <h1>seeknay</h1>
           <p class="tagline">
-            🛡️&nbsp;Workforce Identity Architect | 🔐&nbsp;Cybersecurity |
-            🎮&nbsp;Gamer | 💻&nbsp;Tech Creator
+            I talk identity, security, and the tech behind modern IT. You’ll also get PowerShell, career lessons learned from 15+ years, and what I look for when hiring and interviewing. Plus the occasional life or random thought.
           </p>
         </div>
       </header>
+
+
+
+
 
       <!-- Social Media Links Navigation -->
       <nav class="links" aria-label="Primary links">
@@ -268,30 +271,50 @@
         </a>
       </nav>
 
-      <!-- Contact Section with Copy-to-Clipboard Functionality -->
-      <section class="contact" aria-label="Contact">
-        <div class="contact-card">
-          <div class="contact-left">
-            <i class="fa-solid fa-envelope contact-icon" aria-hidden="true"></i>
-            <a class="contact-email" href="mailto:contact@seeknay.com"
-              >contact@seeknay.com</a
-            >
+
+      <!-- Community Stats Card -->
+      <section class="stats-card" aria-label="Community Statistics">
+          <div class="stats-header">
+              <span class="stats-label">Total Reach</span>
+              <i class="fa-solid fa-users stats-icon"></i>
           </div>
-          <button
-            class="copy-button"
-            type="button"
-            data-copy="contact@seeknay.com"
-            aria-label="Copy email"
-          >
-            <i class="fa-regular fa-copy icon-copy" aria-hidden="true"></i>
-            <i class="fa-solid fa-check icon-check" aria-hidden="true"></i>
-            <span class="copy-tooltip" role="status" aria-live="polite"
-              >Copied!</span
-            >
-          </button>
-        </div>
+          <div class="stats-number" id="total-followers">Loading...</div>
+          <div class="stats-breakdown">
+             <div class="stat-item">
+                 <i class="fa-brands fa-tiktok"></i>
+                 <span data-network="tiktok" class="stat-mini-count">-</span>
+             </div>
+             <div class="stat-item">
+                 <i class="fa-brands fa-youtube"></i>
+                 <span data-network="youtube" class="stat-mini-count">-</span>
+             </div>
+             <div class="stat-item">
+                 <i class="fa-brands fa-instagram"></i>
+                 <span data-network="instagram" class="stat-mini-count">-</span>
+             </div>
+             <div class="stat-item">
+                 <i class="fa-solid fa-cloud"></i>
+                 <span data-network="bluesky" class="stat-mini-count">-</span>
+             </div>
+          </div>
       </section>
 
+      <!-- Business / Collaborate Section -->
+      <section class="business-section">
+          <h2 class="section-title">Collaborate</h2>
+          <div class="links business-links">
+               <a class="link-button business-link" href="mailto:contact@seeknay.com" style="--delay: 0ms">
+                  <span class="link-main">
+                      <i class="fa-solid fa-handshake link-icon"></i>
+                      <span class="link-info-group">
+                          <span class="link-label">Work With Me</span>
+                          <span class="link-followers">Business Inquiries</span>
+                      </span>
+                  </span>
+                  <i class="fa-solid fa-envelope link-arrow"></i>
+               </a>
+          </div>
+      </section>
       <!-- Footer -->
       <footer class="footer">
         🚀 Created with Antigravity, Gemini & Claude by

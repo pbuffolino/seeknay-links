@@ -1,61 +1,105 @@
 /**
- * FOLLOWERS MODULE
- * Renders social media follower counts on the page.
- * 
- * NOTE: All data (including Bluesky) is now pre-fetched by GitHub Actions 
- * and stored in 'assets/social-metrics.json'. This script strictly READS 
- * that static file and updates the DOM. It does NOT make external API calls.
+ * FOLLOWERS.JS
+ * Fetches JSON metrics and populates the UI.
+ * Handles both individual link counts and the aggregate "Community Stats" card.
  */
-/**
- * Load social metrics from the static JSON file.
- * This file is generated/updated daily by GitHub Actions in the .github/workflows directory.
- * @returns {Promise<object|null>} - The metrics object or null if loading fails
- */
-async function loadSocialMetrics() {
-    try {
-        // Fetch the static asset (no API keys required here!)
-        const res = await fetch('assets/social-metrics.json');
-        if (!res.ok) throw new Error('Failed to load social metrics');
-        return await res.json();
-    } catch (e) {
-        console.warn('Failed to load social metrics:', e);
-        return null;
-    }
-}
 
-/**
- * MAIN: Orchestrates the update of all follower count elements on the page.
- * Triggered on DOMContentLoaded.
- */
-async function updateFollowers() {
-    // Select all elements designed to hold follower counts
-    const elements = document.querySelectorAll('.link-followers');
-
-    // Load metrics from the pre-generated JSON file
-    const metrics = await loadSocialMetrics();
-
-    elements.forEach(el => {
-        // The data-network attribute in index.html MUST match the key in social-metrics.json
-        const network = el.dataset.network;
-
-        // Implementation Note: All platforms (including Bluesky) are now 
-        // managed by the GitHub Actions background script.
-        if (metrics && metrics[network]) {
-            const platformData = metrics[network];
-
-            // Only show the count if we have a valid, non-empty display string
-            if (platformData.display && platformData.display.trim() !== "") {
-                el.textContent = platformData.display;
-                el.style.display = 'inline'; // Make visible
-            } else {
-                // Hide completely to avoid showing empty parens or placeholders
-                el.style.display = 'none';
-            }
-        } else {
-            // Hide if the network is missing from JSON entirely
-            el.style.display = 'none';
-        }
+document.addEventListener("DOMContentLoaded", () => {
+  fetch("assets/social-metrics.json")
+    .then((response) => response.json())
+    .then((data) => {
+      updateUI(data);
+    })
+    .catch((error) => {
+      console.error("Error loading social metrics:", error);
+      const totalEl = document.getElementById("total-followers");
+      if (totalEl) totalEl.textContent = "---";
     });
+});
+
+function updateUI(data) {
+  let totalFollowers = 0;
+  
+  // Networks to include in the total count
+  const networks = ["tiktok", "youtube", "instagram", "bluesky", "x"];
+
+  networks.forEach((network) => {
+    const metric = data[network];
+    
+    // Safety check: ensure metric exists
+    if (metric && typeof metric.count === 'number') {
+      // 1. Update Total Aggregate
+      totalFollowers += metric.count;
+
+      // 2. Update Stats Card Breakdown (Mini Counts)
+      // Finds elements like: <span data-network="tiktok" class="stat-mini-count">
+      const miniCountEl = document.querySelector(`.stat-mini-count[data-network="${network}"]`);
+      if (miniCountEl) {
+        miniCountEl.textContent = formatCompactNumber(metric.count);
+      }
+    }
+
+    // 3. Update Link Button Labels (Existing functionality)
+    // Finds elements like: <span class="link-followers" data-network="tiktok">
+    // Prefer the 'display' string from JSON if available, otherwise fallback
+    const followersEl = document.querySelector(`.link-followers[data-network="${network}"]`);
+    if (followersEl && metric) {
+        if (metric.display) {
+            followersEl.textContent = metric.display;
+        } else if (typeof metric.count === 'number') {
+            followersEl.textContent = `${formatNumber(metric.count)} followers`;
+        }
+    }
+  });
+
+  // 4. Update Big Total Display
+  const totalEl = document.getElementById("total-followers");
+  if (totalEl) {
+    animateValue(totalEl, 0, totalFollowers, 1500);
+  }
 }
 
-document.addEventListener('DOMContentLoaded', updateFollowers);
+/**
+ * Formats a number to a compact string (e.g., 1200 -> 1.2K)
+ */
+function formatCompactNumber(num) {
+  return Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(num);
+}
+
+/**
+ * Formats a number with commas (e.g., 1200 -> 1,200)
+ */
+function formatNumber(num) {
+    return new Intl.NumberFormat('en-US').format(num);
+}
+
+/**
+ * Animates a number from start to end
+ */
+function animateValue(obj, start, end, duration) {
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    
+    // Ease out quart
+    const easeProgress = 1 - Math.pow(1 - progress, 4);
+    
+    const current = Math.floor(easeProgress * (end - start) + start);
+    
+    // Once we get close, switch to formatted string
+    if (progress === 1) {
+        obj.textContent = formatCompactNumber(end);
+    } else {
+        obj.textContent = formatNumber(current);
+    }
+    
+    if (progress < 1) {
+      window.requestAnimationFrame(step);
+    }
+  };
+  window.requestAnimationFrame(step);
+}
