@@ -7,7 +7,7 @@
   /* Color Palette */
   --bg: #f8fafc;
   /* Slate 50 - Background */
-  --card: #ffffff;
+  --card: rgba(255, 255, 255, 0.85);
   /* White - Card backgrounds */
   --accent: #4f46e5;
   /* Indigo 600 - Primary accent color */
@@ -22,8 +22,35 @@
 
   /* Shadow System */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.025);
+}
+
+/* Dark Mode Overrides */
+body.dark-mode {
+  --bg: #0f172a;
+  --card: rgba(30, 41, 59, 0.75);
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.1);
+  --hover-border: rgba(99, 102, 241, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+
+  /* Adjusted gradient for dark mode */
+  background: radial-gradient(
+      800px 800px at 0% 0%,
+      rgba(79, 70, 229, 0.15),
+      transparent 60%
+    ),
+    radial-gradient(
+      600px 600px at 100% 100%,
+      rgba(14, 165, 233, 0.15),
+      transparent 60%
+    ),
+    var(--bg);
 }
 
 /* ===================================
@@ -40,12 +67,20 @@
    =================================== */
 body {
   min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 
   /* Gradient background with subtle radial glows in corners */
-  background:
-    radial-gradient(800px 800px at 0% 0%, rgba(79, 70, 229, 0.08), transparent 60%),
-    radial-gradient(600px 600px at 100% 100%, rgba(14, 165, 233, 0.08), transparent 60%),
+  background: radial-gradient(
+      800px 800px at 0% 0%,
+      rgba(79, 70, 229, 0.08),
+      transparent 60%
+    ),
+    radial-gradient(
+      600px 600px at 100% 100%,
+      rgba(14, 165, 233, 0.08),
+      transparent 60%
+    ),
     var(--bg);
 
   color: var(--text);
@@ -127,6 +162,8 @@ body {
 .link-button {
   min-height: 64px;
   padding: 0 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -218,6 +255,8 @@ body {
    CONTACT SECTION
    =================================== */
 .contact-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -324,7 +363,7 @@ body {
 
 /* Tooltip arrow (small triangle at bottom) */
 .copy-tooltip::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -4px;
   right: 22px;
@@ -391,4 +430,69 @@ body {
     padding: 0 28px;
     /* More breathing room */
   }
+}
+
+/* ===================================
+   NEW UI ELEMENTS (Header Actions & Toast)
+   =================================== */
+.header-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.action-btn {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+body.dark-mode .action-btn {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.action-btn:hover {
+  background: var(--card);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+  transform: scale(1.05);
+  border-color: var(--hover-border);
+}
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--text);
+  color: var(--bg);
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 1000;
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+}
+
+.toast-notification.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
