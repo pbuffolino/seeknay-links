@@ -9,7 +9,9 @@
 
 ## 🚀 Features
 
-- **🎨 Modern Design**: Clean, centered layout with subtle gradient backgrounds and smooth animations
+- **🎨 Modern Design**: Clean layout with **Glassmorphism** effects, subtle gradients, and smooth animations
+- **🌓 Dark/Light Mode**: User-controllable theme with persistence
+- **🔗 Share Profile**: Native Web Share API integration with clipboard fallback
 - **📱 Fully Responsive**: Works seamlessly on mobile, tablet, and desktop
 - **♿ Accessible**: ARIA labels, semantic HTML, keyboard navigation support
 - **🔍 SEO Optimized**:
@@ -35,7 +37,8 @@ seeknay-links/
 │   └── styles.css      # Main stylesheet with CSS custom properties
 ├── js/
 │   ├── analytics.js    # GA4 tracking & link click event handling
-│   └── followers.js    # Renders metrics from JSON
+│   ├── followers.js    # Renders metrics from JSON
+│   └── ui.js           # Theme toggle and share logic
 ├── scripts/
 │   └── update-social-metrics.mjs # GitHub Actions background update script (Node.js)
 ├── .github/workflows/
@@ -89,7 +92,8 @@ All colors are defined as CSS custom properties in `css/styles.css`:
 ### General Architecture
 
 - **Type**: Static site (no build process)
-- **Theme**: Light mode with gradient backgrounds
+- **Theme**: Dark/Light mode support with persistence
+- **Visuals**: Glassmorphism cards with backdrop-filter blur
 - **Layout**: Centered column (max-width: 580px)
 - **Icons**: Font Awesome 6.5.1 via CDN
 
