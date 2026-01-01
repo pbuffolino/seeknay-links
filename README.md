@@ -106,8 +106,10 @@ The main entry point contains:
 - **Meta tags**: SEO, Open Graph, Twitter Cards
 - **JSON-LD**: Structured data for search engines
 - **Hero section**: Avatar and bio (`<header class="hero">`)
+- **Community Stats**: Aggregated follower counts (`<section class="stats-card">`)
+- **Collaborate section**: Business inquiries (`<section class="business-section">`)
 - **Links section**: Social media buttons (`<nav class="links">`)
-- **Contact section**: Email with copy button (`<section class="contact">`)
+- **Footer**: Copyright and credits
 
 **Link Button Requirements:**
 
@@ -120,14 +122,20 @@ The main entry point contains:
 >
 ```
 
-**Follower Count Structure:**
+**Community Stats Structure:**
 
 ```html
-<span class="link-info-group">
-  <span class="link-label">Platform</span>
-  <!-- data-network MUST match a key in assets/social-metrics.json -->
-  <span class="link-followers" data-network="platform"></span>
-</span>
+<section class="stats-card">
+  <!-- Header -->
+  <div class="stats-header">...</div>
+  <!-- Total Count (Calculated by JS) -->
+  <div id="total-followers">...</div>
+  <!-- Platform Breakdown -->
+  <div class="stats-breakdown">
+    <div class="stat-item"><span data-network="tiktok"></span></div>
+    <!-- ... other networks ... -->
+  </div>
+</section>
 ```
 
 #### `css/styles.css`
@@ -140,8 +148,9 @@ The main entry point contains:
 **Key Classes:**
 
 - `.hero`: Centered flex column layout
+- `.stats-card`: Glassmorphism card for total reach
+- `.business-section`: Designated area for professional contact
 - `.link-button`: Social link cards with hover effects
-- `.copy-button`: Email copy functionality with tooltip
 - `.link-followers`: Dynamically populated follower counts
 
 #### `js/analytics.js`
