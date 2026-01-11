@@ -1,19 +1,19 @@
 {
-  "updatedAt": "2026-01-10T14:32:54.349Z",
+  "updatedAt": "2026-01-11T14:33:10.769Z",
   "youtube": {
     "count": 139,
     "display": "139 followers",
-    "lastSuccessAt": "2026-01-10T14:32:55.887Z"
+    "lastSuccessAt": "2026-01-11T14:33:10.977Z"
   },
   "instagram": {
     "count": 599,
     "display": "599 followers",
-    "lastSuccessAt": "2026-01-10T14:32:56.759Z"
+    "lastSuccessAt": "2026-01-11T14:33:11.516Z"
   },
   "tiktok": {
     "count": 11000,
     "display": "11,000 followers",
-    "lastSuccessAt": "2026-01-10T14:32:57.578Z"
+    "lastSuccessAt": "2026-01-11T14:33:12.218Z"
   },
   "x": {
     "count": null,
@@ -22,8 +22,8 @@
     "lastError": "Missing X_BEARER_TOKEN or X_USERNAME"
   },
   "bluesky": {
-    "count": 629,
-    "display": "629 followers",
-    "lastSuccessAt": "2026-01-10T14:32:57.837Z"
+    "count": 628,
+    "display": "628 followers",
+    "lastSuccessAt": "2026-01-11T14:33:12.371Z"
   }
 }
