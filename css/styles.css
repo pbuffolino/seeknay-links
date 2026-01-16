@@ -638,3 +638,47 @@ body.dark-mode .action-btn {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ===================================
+   ANIMATION DELAY UTILITIES
+   Used for staggered link button animations
+   =================================== */
+.delay-0 {
+  --delay: 0ms;
+}
+
+.delay-50 {
+  --delay: 50ms;
+}
+
+.delay-100 {
+  --delay: 100ms;
+}
+
+.delay-150 {
+  --delay: 150ms;
+}
+
+.delay-200 {
+  --delay: 200ms;
+}
+
+.delay-250 {
+  --delay: 250ms;
+}
+
+/* ===================================
+   FOOTER LINK STYLES
+   =================================== */
+.footer-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ===================================
+   CONTACT SUBTITLE (Email display under button label)
+   =================================== */
+.contact-subtitle {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}

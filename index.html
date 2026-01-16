@@ -15,11 +15,11 @@
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
   <link rel="preconnect" href="https://www.googletagmanager.com" />
 
-  <!-- Security: Content Security Policy -->
+  <!-- Security: Content Security Policy (Hardened - no unsafe-inline) -->
   <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com 'unsafe-inline';
-      style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline';
+      script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com;
+      style-src 'self' https://cdnjs.cloudflare.com;
       font-src 'self' https://cdnjs.cloudflare.com;
       img-src 'self' data: https:;
       connect-src 'self' https://www.google-analytics.com https://analytics.google.com;
@@ -144,8 +144,8 @@
     <!-- Social Media Links Navigation -->
     <nav class="links" aria-label="Primary links">
       <!-- TikTok -->
-      <a class="link-button" data-link-name="TikTok" data-link-url="https://www.tiktok.com/@seeknay747"
-        href="https://www.tiktok.com/@seeknay747" rel="noopener noreferrer" style="--delay: 0ms">
+      <a class="link-button delay-0" data-link-name="TikTok" data-link-url="https://www.tiktok.com/@seeknay747"
+        href="https://www.tiktok.com/@seeknay747" rel="noopener noreferrer">
         <span class="link-main">
           <i class="fa-brands fa-tiktok link-icon" aria-hidden="true"></i>
           <span class="link-info-group">
@@ -158,8 +158,8 @@
       </a>
 
       <!-- YouTube -->
-      <a class="link-button" data-link-name="YouTube" data-link-url="https://www.youtube.com/@Seeknay747"
-        href="https://www.youtube.com/@Seeknay747" rel="noopener noreferrer" style="--delay: 50ms">
+      <a class="link-button delay-50" data-link-name="YouTube" data-link-url="https://www.youtube.com/@Seeknay747"
+        href="https://www.youtube.com/@Seeknay747" rel="noopener noreferrer">
         <span class="link-main">
           <i class="fa-brands fa-youtube link-icon" aria-hidden="true"></i>
           <span class="link-info-group">
@@ -172,8 +172,8 @@
       </a>
 
       <!-- Instagram -->
-      <a class="link-button" data-link-name="Instagram" data-link-url="https://www.instagram.com/seeknay747"
-        href="https://www.instagram.com/seeknay747" rel="noopener noreferrer" style="--delay: 100ms">
+      <a class="link-button delay-100" data-link-name="Instagram" data-link-url="https://www.instagram.com/seeknay747"
+        href="https://www.instagram.com/seeknay747" rel="noopener noreferrer">
         <span class="link-main">
           <i class="fa-brands fa-instagram link-icon" aria-hidden="true"></i>
           <span class="link-info-group">
@@ -186,8 +186,8 @@
       </a>
 
       <!-- Bluesky -->
-      <a class="link-button" data-link-name="Bluesky" data-link-url="https://bsky.app/profile/seeknay.com"
-        href="https://bsky.app/profile/seeknay.com" rel="noopener noreferrer" style="--delay: 150ms">
+      <a class="link-button delay-150" data-link-name="Bluesky" data-link-url="https://bsky.app/profile/seeknay.com"
+        href="https://bsky.app/profile/seeknay.com" rel="noopener noreferrer">
         <span class="link-main">
           <i class="fa-solid fa-cloud link-icon" aria-hidden="true"></i>
           <span class="link-info-group">
@@ -200,8 +200,8 @@
       </a>
 
       <!-- Facebook -->
-      <a class="link-button" data-link-name="Facebook" data-link-url="https://www.facebook.com/seeknay747"
-        href="https://www.facebook.com/seeknay747" rel="noopener noreferrer" style="--delay: 200ms">
+      <a class="link-button delay-200" data-link-name="Facebook" data-link-url="https://www.facebook.com/seeknay747"
+        href="https://www.facebook.com/seeknay747" rel="noopener noreferrer">
         <span class="link-main">
           <i class="fa-brands fa-facebook link-icon" aria-hidden="true"></i>
           <span class="link-info-group">
@@ -235,8 +235,8 @@
       -->
 
       <!-- Website -->
-      <a class="link-button" data-link-name="Website" data-link-url="https://seeknay.com" href="https://seeknay.com"
-        rel="noopener noreferrer" style="--delay: 250ms">
+      <a class="link-button delay-250" data-link-name="Website" data-link-url="https://seeknay.com"
+        href="https://seeknay.com" rel="noopener noreferrer">
         <span class="link-main">
           <i class="fa-solid fa-link link-icon" aria-hidden="true"></i>
           <span class="link-label">Website</span>
@@ -249,12 +249,12 @@
     <section class="business-section">
       <h2 class="section-title">Collaborate</h2>
       <div class="links business-links">
-        <a class="link-button business-link" href="mailto:contact@seeknay.com" style="--delay: 0ms">
+        <a class="link-button business-link delay-0" href="mailto:contact@seeknay.com">
           <span class="link-main">
             <i class="fa-solid fa-handshake link-icon"></i>
             <span class="link-info-group">
               <span class="link-label">Work With Me</span>
-              <span class="link-followers" style="font-size: 0.8rem; opacity: 0.9;">contact@seeknay.com</span>
+              <span class="link-followers contact-subtitle">contact@seeknay.com</span>
             </span>
           </span>
           <i class="fa-solid fa-envelope link-arrow"></i>
@@ -264,9 +264,9 @@
     <!-- Footer -->
     <footer class="footer">
       🚀 Created with <a href="https://antigravity.google/" target="_blank" rel="noopener noreferrer"
-        style="color: inherit; text-decoration: underline">Google Antigravity</a> by
+        class="footer-link">Google Antigravity</a> by
       <a href="https://github.com/pbuffolino/seeknay-links" target="_blank" rel="noopener noreferrer"
-        style="color: inherit; text-decoration: underline">seeknay</a>
+        class="footer-link">seeknay</a>
     </footer>
   </main>
 </body>

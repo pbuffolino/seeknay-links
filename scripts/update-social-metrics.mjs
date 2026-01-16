@@ -60,11 +60,12 @@ async function safeUpdate(existing, key, fetcher) {
     const msg = String(error?.message ?? error);
     console.warn(`✗ ${key}: ${msg}`);
     // Keep last known count, record error only
+    // 🛡️ SECURITY: Use generic error message to avoid information disclosure
     return {
       ...existing,
       [key]: {
         ...(existing[key] ?? {}),
-        lastError: msg,
+        lastError: "Update failed",
       },
     };
   }
@@ -271,11 +272,11 @@ async function getBlueskyFollowers() {
  */
 async function getFacebookFollowers() {
   const token = process.env.FB_PAGE_ACCESS_TOKEN;
-  // Page ID is public (visible in URL), safe to use as fallback
-  const pageId = process.env.FB_PAGE_ID || "61573097581059";
+  const pageId = process.env.FB_PAGE_ID;
 
-  if (!token) {
-    throw new Error("Missing FB_PAGE_ACCESS_TOKEN");
+  // 🛡️ SECURITY: Require explicit configuration, no hardcoded fallbacks
+  if (!token || !pageId) {
+    throw new Error("Missing FB_PAGE_ACCESS_TOKEN or FB_PAGE_ID");
   }
 
   // Use explicit API version to avoid deprecation surprises
