@@ -1,19 +1,19 @@
 {
-  "updatedAt": "2026-01-15T14:41:06.781Z",
+  "updatedAt": "2026-01-16T05:08:16.509Z",
   "youtube": {
     "count": 139,
     "display": "139 followers",
-    "lastSuccessAt": "2026-01-15T14:41:07.005Z"
+    "lastSuccessAt": "2026-01-16T05:08:16.742Z"
   },
   "instagram": {
-    "count": 599,
-    "display": "599 followers",
-    "lastSuccessAt": "2026-01-15T14:41:08.014Z"
+    "count": 597,
+    "display": "597 followers",
+    "lastSuccessAt": "2026-01-16T05:08:17.304Z"
   },
   "tiktok": {
     "count": 11000,
     "display": "11,000 followers",
-    "lastSuccessAt": "2026-01-15T14:41:08.965Z"
+    "lastSuccessAt": "2026-01-16T05:08:18.080Z"
   },
   "x": {
     "count": null,
@@ -24,11 +24,12 @@
   "bluesky": {
     "count": 628,
     "display": "628 followers",
-    "lastSuccessAt": "2026-01-15T14:41:09.165Z"
+    "lastSuccessAt": "2026-01-16T05:08:18.212Z"
   },
   "facebook": {
     "count": null,
     "display": "",
-    "lastSuccessAt": null
+    "lastSuccessAt": null,
+    "lastError": "Facebook API error 400: Unsupported get request. Object with ID '61573097581059' does not exist, cannot be loaded due to mis"
   }
 }
