@@ -1,34 +1,35 @@
 {
-  "updatedAt": "2026-01-16T05:15:18.323Z",
+  "updatedAt": "2026-01-16T14:40:29.000Z",
   "youtube": {
     "count": 139,
     "display": "139 followers",
-    "lastSuccessAt": "2026-01-16T05:15:18.879Z"
+    "lastSuccessAt": "2026-01-16T14:40:29.275Z"
   },
   "instagram": {
     "count": 597,
     "display": "597 followers",
-    "lastSuccessAt": "2026-01-16T05:15:19.220Z"
+    "lastSuccessAt": "2026-01-16T14:40:29.864Z"
   },
   "tiktok": {
     "count": 11000,
     "display": "11,000 followers",
-    "lastSuccessAt": "2026-01-16T05:15:19.979Z"
+    "lastSuccessAt": "2026-01-16T14:40:30.477Z"
   },
   "x": {
     "count": null,
     "display": "",
     "lastSuccessAt": null,
-    "lastError": "Missing X_BEARER_TOKEN or X_USERNAME"
+    "lastError": "Update failed"
   },
   "bluesky": {
     "count": 628,
     "display": "628 followers",
-    "lastSuccessAt": "2026-01-16T05:15:20.128Z"
+    "lastSuccessAt": "2026-01-16T14:40:30.528Z"
   },
   "facebook": {
     "count": 31,
     "display": "31 followers",
-    "lastSuccessAt": "2026-01-16T05:15:20.336Z"
+    "lastSuccessAt": "2026-01-16T05:15:20.336Z",
+    "lastError": "Update failed"
   }
 }
