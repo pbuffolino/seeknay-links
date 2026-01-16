@@ -1,338 +1,249 @@
 # seeknay Links
 
-> A modern, lightweight "Linktree-style" landing page for seeknay's social media profiles and contact information.
+> 🔗 My personal link-in-bio page — one place for all my social profiles and contact info.
 
-[![Live Site](https://img.shields.io/badge/live-links.seeknay.com-4f46e5)](https://links.seeknay.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Live Site](https://img.shields.io/badge/🌐_Visit_Site-links.seeknay.com-4f46e5?style=for-the-badge)](https://links.seeknay.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+
+![Preview of seeknay links page](assets/og.png)
 
 ---
 
-## 🚀 Features
+## 👋 What Is This?
 
-- **🎨 Modern Design**: Clean layout with **Glassmorphism** effects, subtle gradients, and smooth animations
-- **🌓 Dark/Light Mode**: User-controllable theme with persistence
-- **🔗 Share Profile**: Native Web Share API integration with clipboard fallback
-- **📱 Fully Responsive**: Works seamlessly on mobile, tablet, and desktop
-- **♿ Accessible**: ARIA labels, semantic HTML, keyboard navigation support
-- **🔍 SEO Optimized**:
-  - JSON-LD structured data for search engines
-  - Open Graph and Twitter Card meta tags
-  - Performance optimizations (preconnect hints)
-- **📊 Analytics**: Google Analytics 4 (GA4) integration with click tracking
-- **👥 Dynamic Follower Counts**: Automated follower count display for all platforms (YouTube, Instagram, TikTok, X, Bluesky) using GitHub Actions.
-- **📋 Copy-to-Clipboard**: One-click email copy functionality
-- **⚡ Zero Dependencies**: Pure HTML/CSS/JavaScript - no build tools required
+This is the source code for my personal "link-in-bio" landing page at [links.seeknay.com](https://links.seeknay.com/). Think of it like Linktree, but built from scratch with a modern design.
+
+**Why build my own?** Full control over the design, no subscriptions, and I get to track my own analytics!
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **🎨 Modern Design** | Glass-style cards, smooth animations, and a clean look |
+| **🌓 Dark/Light Mode** | Click the moon icon to switch themes |
+| **📱 Mobile Friendly** | Looks great on phones, tablets, and desktops |
+| **📊 Follower Counts** | Automatically displays my follower counts across platforms |
+| **📈 Analytics** | Tracks which links get clicked (using Google Analytics) |
+| **🔗 Easy Sharing** | Click the share button to send my page to others |
+| **⚡ Fast Loading** | No heavy frameworks — just clean, simple code |
+
+---
+
+## 🌐 Live Site
+
+**Visit:** [links.seeknay.com](https://links.seeknay.com/)
+
+The site updates automatically whenever I push changes to this repository.
+
+---
+
+## 🚀 Quick Start (For Developers)
+
+Want to run this locally or fork it for yourself? Here's how:
+
+### Prerequisites
+
+- A web browser (Chrome, Firefox, Edge, Safari)
+- [Node.js](https://nodejs.org/) (optional, for local server)
+
+### Run Locally
+
+```bash
+# Clone the repository
+git clone https://github.com/pbuffolino/seeknay-links.git
+cd seeknay-links
+
+# Start a local server (pick one):
+npx -y serve .              # Node.js method
+python -m http.server 3000  # Python method
+```
+
+Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
 ## 📂 Project Structure
 
-```text
+```
 seeknay-links/
-├── assets/             # Static images and metrics
-│   ├── avatar.jpg      # Profile avatar
-│   ├── og.png          # Open Graph preview image
-│   └── social-metrics.json # Persistent follower counts (updated by GitHub Actions)
+├── assets/                 # Images and data
+│   ├── avatar.jpg          # My profile picture
+│   ├── og.png              # Image shown when sharing links
+│   └── social-metrics.json # Follower counts (auto-updated daily)
 ├── css/
-│   └── styles.css      # Main stylesheet with CSS custom properties
+│   └── styles.css          # All the styling
 ├── js/
-│   ├── analytics.js    # GA4 tracking & link click event handling
-│   ├── followers.js    # Renders metrics from JSON
-│   └── ui.js           # Theme toggle and share logic
+│   ├── analytics.js        # Google Analytics tracking
+│   ├── followers.js        # Displays follower counts
+│   └── ui.js               # Theme toggle and share button
 ├── scripts/
-│   └── update-social-metrics.mjs # GitHub Actions background update script (Node.js)
+│   └── update-social-metrics.mjs  # Script that fetches follower counts
 ├── .github/workflows/
-│   └── update-social-metrics.yml # Scheduled daily update workflow
-├── index.html          # Main HTML entry point
-├── package.json        # Node.js project config for background scripts
-├── robots.txt          # Search engine crawler directives
-├── sitemap.xml         # Site map for SEO
-├── CNAME               # Custom domain configuration
-└── README.md           # This file
+│   └── update-social-metrics.yml  # Runs the script daily
+├── index.html              # The main page
+├── robots.txt              # Instructions for search engines
+├── sitemap.xml             # Helps search engines find the page
+└── README.md               # You're reading this!
 ```
 
 ---
 
-## 🛠️ Technology Stack
+## 🎨 Customization
 
-- **HTML5**: Semantic markup with accessibility features
-- **CSS3**: Custom properties (variables), animations, flexbox/grid
-- **Vanilla JavaScript**: No frameworks - pure ES6+
-- **Font Awesome 6.5.1**: Icon library (CDN)
-- **Google Analytics 4**: Web analytics
+### Want to use this for yourself?
 
----
+1. **Fork this repository**
+2. **Replace my info with yours:**
+   - Update `assets/avatar.jpg` with your photo
+   - Edit the name and bio in `index.html`
+   - Change the social links to your profiles
+3. **Deploy for free** using [GitHub Pages](https://pages.github.com/)
 
-## 🎨 Design System
+### Changing Colors
 
-### Color Palette
+Edit the colors at the top of `css/styles.css`:
 
-All colors are defined as CSS custom properties in `css/styles.css`:
+```css
+:root {
+  --accent: #4f46e5;  /* Main accent color (purple) */
+  --bg: #f8fafc;      /* Background color */
+}
+```
 
-| Variable         | Color     | Usage                            |
-| ---------------- | --------- | -------------------------------- |
-| `--bg`           | `#f8fafc` | Background (Slate 50)            |
-| `--card`         | `#ffffff` | Card backgrounds                 |
-| `--accent`       | `#4f46e5` | Primary accent (Indigo 600)      |
-| `--text`         | `#0f172a` | Primary text (Slate 900)         |
-| `--muted`        | `#64748b` | Secondary text (Slate 500)       |
-| `--border`       | `#e2e8f0` | Default borders (Slate 200)      |
-| `--hover-border` | `#c7d2fe` | Hover state borders (Indigo 200) |
+### Adding a New Social Link
 
-### Shadow System
-
-- `--shadow-sm`: Subtle elevation
-- `--shadow-md`: Medium elevation (cards, hovers)
-- `--shadow-lg`: High elevation (tooltips)
-
----
-
-## 🤖 AI Agent Development Guide
-
-### General Architecture
-
-- **Type**: Static site (no build process)
-- **Theme**: Dark/Light mode support with persistence
-- **Visuals**: Glassmorphism cards with backdrop-filter blur
-- **Layout**: Centered column (max-width: 580px)
-- **Icons**: Font Awesome 6.5.1 via CDN
-
-### File-Specific Instructions
-
-#### `index.html`
-
-The main entry point contains:
-
-- **Meta tags**: SEO, Open Graph, Twitter Cards
-- **JSON-LD**: Structured data for search engines
-- **Hero section**: Avatar and bio (`<header class="hero">`)
-- **Community Stats**: Aggregated follower counts (`<section class="stats-card">`)
-- **Collaborate section**: Business inquiries (`<section class="business-section">`)
-- **Links section**: Social media buttons (`<nav class="links">`)
-- **Footer**: Copyright and credits
-
-**Link Button Requirements:**
+Add this HTML inside the `<nav class="links">` section:
 
 ```html
-<a class="link-button" data-link-name="Platform" <!-- REQUIRED for analytics -->
-  data-link-url="https://example.com"
-  <!-- REQUIRED for analytics -->
-  href="https://example.com" rel="noopener noreferrer" style="--delay: 0ms">
-  <!-- REQUIRED for staggered animation --></a
->
+<a class="link-button" href="https://yourlink.com" rel="noopener noreferrer">
+  <span class="link-main">
+    <i class="fa-brands fa-icon-name link-icon"></i>
+    <span class="link-label">Platform Name</span>
+  </span>
+</a>
 ```
 
-**Community Stats Structure:**
-
-```html
-<section class="stats-card">
-  <!-- Header -->
-  <div class="stats-header">...</div>
-  <!-- Total Count (Calculated by JS) -->
-  <div id="total-followers">...</div>
-  <!-- Platform Breakdown -->
-  <div class="stats-breakdown">
-    <div class="stat-item"><span data-network="tiktok"></span></div>
-    <!-- ... other networks ... -->
-  </div>
-</section>
-```
-
-#### `css/styles.css`
-
-- All code is well-commented with section headers
-- Uses CSS custom properties (`:root` variables)
-- Animations: `buttonIn` keyframe for staggered entrance
-- Responsive breakpoint: `640px` (tablet/desktop)
-
-**Key Classes:**
-
-- `.hero`: Centered flex column layout
-- `.stats-card`: Glassmorphism card for total reach
-- `.business-section`: Designated area for professional contact
-- `.link-button`: Social link cards with hover effects
-- `.link-followers`: Dynamically populated follower counts
-
-#### `js/analytics.js`
-
-- Initializes Google Analytics 4
-- Intercepts link clicks for event tracking
-- **Critical**: Uses `event.preventDefault()` + `setTimeout` to ensure GA4 events fire before navigation
-- Events tracked: `click_link` with `link_name` and `link_url` parameters
-
-#### `js/followers.js`
-
-- Renders follower counts exclusively from `assets/social-metrics.json`.
-- **Pure Display Logic**: Does NO fetching or API calls. All data is pre-fetched by GitHub Actions.
-- **Security**: Contains NO API keys or credentials. Safe for public browsers.
-
-### Development Rules
-
-1. **No Build Tools**: Keep as pure static files. No npm, webpack, or bundlers unless explicitly requested.
-2. **Formatting**: Use 2-space indentation. Keep code clean and commented.
-3. **Relative Paths**: All asset references use relative paths (`css/styles.css`, `assets/avatar.jpg`).
-4. **Accessibility**: Maintain ARIA labels, semantic HTML, and keyboard navigation.
-5. **SEO**: Keep all meta tags, JSON-LD, and sitemap up to date.
-6. **Performance**: Use `preconnect` for external resources, `defer` for scripts.
-
-### Adding New Social Links
-
-1. **Update HTML** (`index.html`):
-
-   ```html
-   <a
-     class="link-button"
-     data-link-name="NewPlatform"
-     data-link-url="https://newplatform.com/@username"
-     href="https://newplatform.com/@username"
-     rel="noopener noreferrer"
-     style="--delay: 250ms"
-   >
-     <!-- Increment delay by 50ms -->
-     <span class="link-main">
-       <i class="fa-brands fa-newplatform link-icon"></i>
-       <span class="link-info-group">
-         <span class="link-label">NewPlatform</span>
-         <span class="link-followers" data-network="newplatform"></span>
-       </span>
-     </span>
-     <i class="fa-solid fa-arrow-up-right-from-square link-arrow"></i>
-   </a>
-   ```
-
-2. **Update JSON-LD** (`index.html`):
-   Add the new URL to the `"sameAs"` array in the structured data script.
-
-3. **Verify automated updates**:
-   - Add logic to `scripts/update-social-metrics.mjs` to fetch count.
-   - Add new key to `assets/social-metrics.json`.
-   - Update `on: schedule` frequency if needed in workflow.
+Find icon names at [Font Awesome](https://fontawesome.com/icons).
 
 ---
 
-## 🧪 Local Development
+## 📊 How Follower Counts Work
 
-### Option 1: Node.js (Recommended)
+The page shows live follower counts for each platform. Here's how it works:
 
-```bash
-npx -y serve .
-# Opens at http://localhost:3000
-```
+1. **Daily Automation**: A GitHub Action runs once per day
+2. **Fetches Data**: It contacts each platform's API to get current counts
+3. **Saves Results**: The counts are saved to `assets/social-metrics.json`
+4. **Displays on Site**: The page reads this file and shows the numbers
 
-### Option 2: Python
+**Platforms Supported:**
+- TikTok
+- YouTube
+- Instagram
+- Bluesky
+- Facebook
 
-```bash
-python -m http.server 4321
-# Opens at http://localhost:4321
-```
+### Setting Up Follower Counts (For Your Own Fork)
 
-### Option 3: VS Code Live Server
+You'll need API credentials for each platform. Store them securely in **GitHub Secrets** (never in the code!).
 
-Install the "Live Server" extension and click "Go Live" in the bottom-right corner.
+Go to: **Repository Settings** → **Secrets and variables** → **Actions**
+
+| Secret Name | Platform | What It Is |
+|-------------|----------|------------|
+| `YT_API_KEY` | YouTube | Your YouTube API key |
+| `YT_CHANNEL_ID` | YouTube | Your channel ID |
+| `IG_ACCESS_TOKEN` | Instagram | Facebook Graph API token |
+| `IG_USER_ID` | Instagram | Your Instagram user ID |
+| `TIKTOK_SESSION_ID` | TikTok | Session cookie from browser |
+| `TIKTOK_USERNAME` | TikTok | Your TikTok username |
+| `BSKY_HANDLE` | Bluesky | Your Bluesky handle |
+| `FB_PAGE_ACCESS_TOKEN` | Facebook | Facebook Page access token |
+| `FB_PAGE_ID` | Facebook | Your Facebook Page ID |
+
+> 💡 **Tip:** If a token expires or API fails, the site keeps showing the last known count.
 
 ---
 
 ## 🚀 Deployment
 
-This site is configured for **GitHub Pages** with a custom domain:
+This site is hosted for **free** on [GitHub Pages](https://pages.github.com/).
 
-1. **Repository Settings** → **Pages**
-2. **Source**: Deploy from `main` branch
-3. **Custom Domain**: `links.seeknay.com` (set in `CNAME` file)
-4. **SSL**: Automatically provided by GitHub Pages
+### How to Deploy Your Own
 
-## 👥 Social Metrics & GitHub Actions
+1. Push your code to a GitHub repository
+2. Go to **Settings** → **Pages**
+3. Under "Source," select **Deploy from a branch**
+4. Choose the `main` branch
+5. (Optional) Add a custom domain in the **Custom domain** field
 
-This project uses a **Unified Background Update** approach for follower counts:
-
-1. **Source of Truth**: `assets/social-metrics.json`
-2. **Mechanism**: `scripts/update-social-metrics.mjs` runs via GitHub Actions.
-3. **Schedule**: Daily (at 2:17 PM UTC) to keep metrics fresh while maintaining API limits.
-
-### 🔒 Security & GitHub Secrets
-
-**NEVER commit API keys or tokens to this repository.** This is a public repository. All credentials MUST be stored in **GitHub Secrets**.
-
-To set up the automated updates:
-
-1. Go to your repository on GitHub.
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**.
-3. Add the following secrets:
-
-| Secret Name         | Platform  | Usage                             |
-| ------------------- | --------- | --------------------------------- |
-| `YT_API_KEY`        | YouTube   | YouTube Data API v3 Key           |
-| `YT_CHANNEL_ID`     | YouTube   | Your Channel ID (e.g. `UC...`)    |
-| `IG_ACCESS_TOKEN`   | Instagram | Long-lived Graph API Token        |
-| `IG_USER_ID`        | Instagram | Your Instagram Business ID        |
-| `TIKTOK_SESSION_ID` | TikTok    | `sessionid` cookie from browser   |
-| `TIKTOK_MS_TOKEN`   | TikTok    | `msToken` cookie from browser     |
-| `TIKTOK_USERNAME`   | TikTok    | Your username (e.g. `seeknay747`) |
-| `X_BEARER_TOKEN`    | X/Twitter | API v2 Bearer Token               |
-| `X_USERNAME`        | X/Twitter | Your username (without @)         |
-| `BSKY_HANDLE`       | Bluesky   | Your handle (e.g. `seeknay.com`)  |
-
-### Troubleshooting
-
-- **Last Known Count**: If an API call fails or a token expires, the site will continue to show the last successful count stored in `assets/social-metrics.json`.
-- **Manual Trigger**: You can manually trigger an update from the **Actions** tab by selecting the "Update Social Metrics" workflow and clicking "Run workflow".
+Your site will be live at `https://yourusername.github.io/repo-name/`
 
 ---
 
-## 📊 Analytics
+## 📈 Analytics
 
-- **Platform**: Google Analytics 4
-- **Property ID**: `G-C9JSC7H6WW` (configured in `index.html`)
-- **Events Tracked**:
-  - Page views (automatic)
-  - Link clicks (`click_link` event with `link_name` and `link_url`)
+The site uses **Google Analytics 4** to track:
+- Page views
+- Which links get clicked
+- Device and location info (anonymized)
 
----
-
-## 🔧 Customization
-
-### Changing Colors
-
-Edit CSS custom properties in `css/styles.css`:
-
-```css
-:root {
-  --accent: #4f46e5; /* Change primary accent color */
-  --bg: #f8fafc; /* Change background color */
-}
-```
-
-### Updating Bio/Tagline
-
-Edit the `<p class="tagline">` in `index.html`:
+To use your own analytics, replace the GA4 ID in `index.html`:
 
 ```html
-<p class="tagline">Your New Bio Here</p>
+<script src="https://www.googletagmanager.com/gtag/js?id=YOUR-ID-HERE"></script>
 ```
 
-Also update meta descriptions for SEO consistency.
+---
 
-### Adding/Removing Links
+## 🛡️ Security
 
-- Add/remove `<a class="link-button">` elements in the `<nav class="links">` section
-- Update `style="--delay: Xms"` incrementally (0ms, 50ms, 100ms, etc.)
-- Update JSON-LD `"sameAs"` array
+- ✅ **No API keys in code** — all secrets stored in GitHub Secrets
+- ✅ **Content Security Policy** — restricts what scripts can run
+- ✅ **IP anonymization** — respects visitor privacy in analytics
+- ✅ **HTTPS enforced** — via GitHub Pages
+
+---
+
+## 🛠️ Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| HTML5 | Page structure |
+| CSS3 | Styling and animations |
+| Vanilla JavaScript | Interactivity (no frameworks!) |
+| Font Awesome | Icons |
+| GitHub Actions | Automated follower count updates |
+| GitHub Pages | Free hosting |
 
 ---
 
 ## 📝 License
 
-MIT License - feel free to fork and customize for your own use!
+This project is open source under the **MIT License**. 
+
+Feel free to fork it, customize it, and use it for your own link-in-bio page!
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **Font Awesome**: Icon library
-- **Google Fonts**: Inter font family (system fallback chain)
-- **Bluesky AT Protocol**: Follower count API
+- [Font Awesome](https://fontawesome.com/) — Icon library
+- [Google Antigravity](https://antigravity.google/) — AI coding assistant that helped build this
+- [GitHub Pages](https://pages.github.com/) — Free hosting
 
 ---
 
-**Built with ❤️ by seeknay using Google's Antigravity, Gemini, and Claude Sonnet**  
-🌐 [seeknay.com](https://seeknay.com) | 🔗 [links.seeknay.com](https://links.seeknay.com)
+## 📬 Contact
+
+- **Website:** [seeknay.com](https://seeknay.com)
+- **Links Page:** [links.seeknay.com](https://links.seeknay.com)
+- **Email:** contact@seeknay.com
+
+---
+
+<p align="center">
+  <strong>Built with ❤️ by <a href="https://seeknay.com">seeknay</a> using <a href="https://antigravity.google/">Google Antigravity</a></strong>
+</p>

@@ -19,13 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function updateUI(data) {
   let totalFollowers = 0;
-  
+
   // Networks to include in the total count
-  const networks = ["tiktok", "youtube", "instagram", "bluesky", "x"];
+  const networks = ["tiktok", "youtube", "instagram", "bluesky", "facebook", "x"];
 
   networks.forEach((network) => {
     const metric = data[network];
-    
+
     // Safety check: ensure metric exists
     if (metric && typeof metric.count === 'number') {
       // 1. Update Total Aggregate
@@ -44,11 +44,11 @@ function updateUI(data) {
     // Prefer the 'display' string from JSON if available, otherwise fallback
     const followersEl = document.querySelector(`.link-followers[data-network="${network}"]`);
     if (followersEl && metric) {
-        if (metric.display) {
-            followersEl.textContent = metric.display;
-        } else if (typeof metric.count === 'number') {
-            followersEl.textContent = `${formatNumber(metric.count)} followers`;
-        }
+      if (metric.display) {
+        followersEl.textContent = metric.display;
+      } else if (typeof metric.count === 'number') {
+        followersEl.textContent = `${formatNumber(metric.count)} followers`;
+      }
     }
   });
 
@@ -73,7 +73,7 @@ function formatCompactNumber(num) {
  * Formats a number with commas (e.g., 1200 -> 1,200)
  */
 function formatNumber(num) {
-    return new Intl.NumberFormat('en-US').format(num);
+  return new Intl.NumberFormat('en-US').format(num);
 }
 
 /**
@@ -84,19 +84,19 @@ function animateValue(obj, start, end, duration) {
   const step = (timestamp) => {
     if (!startTimestamp) startTimestamp = timestamp;
     const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-    
+
     // Ease out quart
     const easeProgress = 1 - Math.pow(1 - progress, 4);
-    
+
     const current = Math.floor(easeProgress * (end - start) + start);
-    
+
     // Once we get close, switch to formatted string
     if (progress === 1) {
-        obj.textContent = formatCompactNumber(end);
+      obj.textContent = formatCompactNumber(end);
     } else {
-        obj.textContent = formatNumber(current);
+      obj.textContent = formatNumber(current);
     }
-    
+
     if (progress < 1) {
       window.requestAnimationFrame(step);
     }

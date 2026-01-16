@@ -259,6 +259,47 @@ async function getBlueskyFollowers() {
   return Number(count);
 }
 
+/**
+ * Fetch Facebook Page follower count
+ * Requires: FB_PAGE_ACCESS_TOKEN
+ * Optional: FB_PAGE_ID (defaults to seeknay's page)
+ * 
+ * 🔒 SECURITY NOTES:
+ * - Token read from env only, never from file or argument
+ * - Error messages sanitized to prevent token reflection
+ * - Uses HTTPS with explicit API version to prevent downgrade
+ */
+async function getFacebookFollowers() {
+  const token = process.env.FB_PAGE_ACCESS_TOKEN;
+  // Page ID is public (visible in URL), safe to use as fallback
+  const pageId = process.env.FB_PAGE_ID || "61573097581059";
+
+  if (!token) {
+    throw new Error("Missing FB_PAGE_ACCESS_TOKEN");
+  }
+
+  // Use explicit API version to avoid deprecation surprises
+  const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(
+    pageId
+  )}?fields=followers_count&access_token=${encodeURIComponent(token)}`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (!res.ok) {
+    // 🛡️ SECURITY: Log only error code and safe message, never the full response
+    // which could contain reflected token fragments in some error types
+    const safeMessage = data?.error?.message?.substring(0, 100) || "Unknown error";
+    throw new Error(`Facebook API error ${res.status}: ${safeMessage}`);
+  }
+
+  if (data?.followers_count == null) {
+    throw new Error("followers_count missing from response");
+  }
+
+  return Number(data.followers_count);
+}
+
 // =============================================================================
 // MAIN EXECUTION
 // =============================================================================
@@ -284,6 +325,7 @@ async function main() {
   next = await safeUpdate(next, "tiktok", getTikTokFollowers);
   next = await safeUpdate(next, "x", getXFollowers);
   next = await safeUpdate(next, "bluesky", getBlueskyFollowers);
+  next = await safeUpdate(next, "facebook", getFacebookFollowers);
 
   // 3. Write back to disk (GitHub Action will commit this file)
   await writeJson(OUT, next);

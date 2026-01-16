@@ -40,6 +40,8 @@ jobs:
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
           X_USERNAME: ${{ secrets.X_USERNAME }}
           BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
         run: node scripts/update-social-metrics.mjs
 
       # Only commit if the metrics file actually changed to avoid empty commits

@@ -23,3 +23,6 @@ Thumbs.db
 debug_*
 *.tmp
 *.log
+
+# Agent planning documents (local only)
+.agent/plans/

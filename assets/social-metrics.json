@@ -25,5 +25,10 @@
     "count": 628,
     "display": "628 followers",
     "lastSuccessAt": "2026-01-15T14:41:09.165Z"
+  },
+  "facebook": {
+    "count": null,
+    "display": "",
+    "lastSuccessAt": null
   }
 }
