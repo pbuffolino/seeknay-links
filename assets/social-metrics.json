@@ -1,19 +1,19 @@
 {
-  "updatedAt": "2026-01-30T14:54:30.701Z",
+  "updatedAt": "2026-01-31T14:40:50.349Z",
   "youtube": {
     "count": 141,
     "display": "141 followers",
-    "lastSuccessAt": "2026-01-30T14:54:31.217Z"
+    "lastSuccessAt": "2026-01-31T14:40:50.579Z"
   },
   "instagram": {
     "count": 605,
     "display": "605 followers",
-    "lastSuccessAt": "2026-01-30T14:54:31.559Z"
+    "lastSuccessAt": "2026-01-31T14:40:51.270Z"
   },
   "tiktok": {
-    "count": 11000,
-    "display": "11,000 followers",
-    "lastSuccessAt": "2026-01-30T14:54:32.115Z"
+    "count": 11100,
+    "display": "11,100 followers",
+    "lastSuccessAt": "2026-01-31T14:40:52.021Z"
   },
   "x": {
     "count": null,
@@ -22,9 +22,9 @@
     "lastError": "Update failed"
   },
   "bluesky": {
-    "count": 630,
-    "display": "630 followers",
-    "lastSuccessAt": "2026-01-30T14:54:32.392Z"
+    "count": 629,
+    "display": "629 followers",
+    "lastSuccessAt": "2026-01-31T14:40:52.188Z"
   },
   "facebook": {
     "count": 31,
