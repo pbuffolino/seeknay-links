@@ -27,6 +27,7 @@ This is the source code for my personal "link-in-bio" landing page at [links.see
 | **📊 Follower Counts** | Automatically displays my follower counts across platforms |
 | **📈 Analytics** | Tracks which links get clicked (using Google Analytics) |
 | **🔗 Easy Sharing** | Click the share button to send my page to others |
+| **⭐ Featured Spotlight** | Highlight your latest content with a special card |
 | **⚡ Fast Loading** | No heavy frameworks — just clean, simple code |
 
 ---
@@ -144,6 +145,14 @@ The page shows live follower counts for each platform. Here's how it works:
 - Instagram
 - Bluesky
 - Facebook
+ 
+### Updating the Spotlight Card
+
+To change the featured blog post:
+1. Open `index.html`.
+2. Find the comment `<!-- Spotlight Section -->`.
+3. Update the `href` (link), `h3` (title), and `p` (description).
+4. Update the `data-link-name` attribute for analytics tracking.
 
 ### Setting Up Follower Counts (For Your Own Fork)
 
