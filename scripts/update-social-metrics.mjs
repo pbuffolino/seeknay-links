@@ -124,7 +124,9 @@ async function getInstagramFollowers() {
 
   if (!res.ok) {
     // 🛡️ SECURITY: Log only the error message, not the full object which might contain reflected tokens
-    throw new Error(`Instagram API error ${res.status}: ${data?.error?.message || "Unknown error"}`);
+    throw new Error(
+      `Instagram API error ${res.status}: ${data?.error?.message || "Unknown error"}`
+    );
   }
 
   if (data?.followers_count == null) {
@@ -154,10 +156,11 @@ async function getTikTokFollowers() {
   // Attempt 1: Internal API (Fastest)
   const apiRes = await fetch(url, {
     headers: {
-      "Cookie": `sessionid=${sessionId}`,
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "application/json, text/plain, */*",
-      "Referer": "https://www.tiktok.com/",
+      Cookie: `sessionid=${sessionId}`,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept: "application/json, text/plain, */*",
+      Referer: "https://www.tiktok.com/",
     },
   });
 
@@ -178,8 +181,9 @@ async function getTikTokFollowers() {
   // Attempt 2: Scrape Profile Page (More Reliable)
   const pageRes = await fetch(`https://www.tiktok.com/@${username}`, {
     headers: {
-      "Cookie": `sessionid=${sessionId}`,
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Cookie: `sessionid=${sessionId}`,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     },
   });
 
@@ -264,7 +268,7 @@ async function getBlueskyFollowers() {
  * Fetch Facebook Page follower count
  * Requires: FB_PAGE_ACCESS_TOKEN
  * Optional: FB_PAGE_ID (defaults to seeknay's page)
- * 
+ *
  * 🔒 SECURITY NOTES:
  * - Token read from env only, never from file or argument
  * - Error messages sanitized to prevent token reflection
@@ -313,11 +317,11 @@ async function main() {
   const existing = await readJson(OUT);
   let next = {
     ...existing,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 
   // 2. Sequential updates for clarity and stability
-  // To add a new platform: 
+  // To add a new platform:
   //   a. Create a getPlatformFollowers() function
   //   b. Add a safeUpdate() call here
   //   c. Add the key to assets/social-metrics.json
@@ -333,7 +337,7 @@ async function main() {
   console.log(`\n✅ Metrics saved to ${OUT}`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error("❌ Critical script failure:", err);
   process.exit(1);
 });

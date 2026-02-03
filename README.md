@@ -19,16 +19,16 @@ This is the source code for my personal "link-in-bio" landing page at [links.see
 
 ## ✨ Features
 
-| Feature | Description |
-|---------|-------------|
-| **🎨 Modern Design** | Glass-style cards, smooth animations, and a clean look |
-| **🌓 Dark/Light Mode** | Click the moon icon to switch themes |
-| **📱 Mobile Friendly** | Looks great on phones, tablets, and desktops |
-| **📊 Follower Counts** | Automatically displays my follower counts across platforms |
-| **📈 Analytics** | Tracks which links get clicked (using Google Analytics) |
-| **🔗 Easy Sharing** | Click the share button to send my page to others |
-| **⭐ Featured Spotlight** | Highlight your latest content with a special card |
-| **⚡ Fast Loading** | No heavy frameworks — just clean, simple code |
+| Feature                   | Description                                                |
+| ------------------------- | ---------------------------------------------------------- |
+| **🎨 Modern Design**      | Glass-style cards, smooth animations, and a clean look     |
+| **🌓 Dark/Light Mode**    | Click the moon icon to switch themes                       |
+| **📱 Mobile Friendly**    | Looks great on phones, tablets, and desktops               |
+| **📊 Follower Counts**    | Automatically displays my follower counts across platforms |
+| **📈 Analytics**          | Tracks which links get clicked (using Google Analytics)    |
+| **🔗 Easy Sharing**       | Click the share button to send my page to others           |
+| **⭐ Featured Spotlight** | Highlight your latest content with a special card          |
+| **⚡ Fast Loading**       | No heavy frameworks — just clean, simple code              |
 
 ---
 
@@ -72,20 +72,24 @@ seeknay-links/
 ├── assets/                 # Images and data
 │   ├── avatar.jpg          # My profile picture
 │   ├── og.png              # Image shown when sharing links
+│   ├── links.json          # Configuration for all social links
 │   └── social-metrics.json # Follower counts (auto-updated daily)
 ├── css/
 │   └── styles.css          # All the styling
 ├── js/
 │   ├── analytics.js        # Google Analytics tracking
 │   ├── followers.js        # Displays follower counts
+│   ├── links.js            # Dynamically loads links from JSON
 │   └── ui.js               # Theme toggle and share button
 ├── scripts/
 │   └── update-social-metrics.mjs  # Script that fetches follower counts
 ├── .github/workflows/
-│   └── update-social-metrics.yml  # Runs the script daily
+│   ├── update-social-metrics.yml  # Runs the script daily
+│   └── ci.yml                     # Continuous Integration checks
 ├── index.html              # The main page
 ├── robots.txt              # Instructions for search engines
 ├── sitemap.xml             # Helps search engines find the page
+├── eslint.config.mjs       # Linting configuration
 └── README.md               # You're reading this!
 ```
 
@@ -99,7 +103,7 @@ seeknay-links/
 2. **Replace my info with yours:**
    - Update `assets/avatar.jpg` with your photo
    - Edit the name and bio in `index.html`
-   - Change the social links to your profiles
+   - Update `assets/links.json` with your social profiles
 3. **Deploy for free** using [GitHub Pages](https://pages.github.com/)
 
 ### Changing Colors
@@ -108,25 +112,28 @@ Edit the colors at the top of `css/styles.css`:
 
 ```css
 :root {
-  --accent: #4f46e5;  /* Main accent color (purple) */
-  --bg: #f8fafc;      /* Background color */
+  --accent: #4f46e5; /* Main accent color (purple) */
+  --bg: #f8fafc; /* Background color */
 }
 ```
 
 ### Adding a New Social Link
 
-Add this HTML inside the `<nav class="links">` section:
+Edit `assets/links.json` to add a new entry:
 
-```html
-<a class="link-button" href="https://yourlink.com" rel="noopener noreferrer">
-  <span class="link-main">
-    <i class="fa-brands fa-icon-name link-icon"></i>
-    <span class="link-label">Platform Name</span>
-  </span>
-</a>
+```json
+{
+  "name": "Platform Name",
+  "url": "https://yourlink.com",
+  "icon": "fa-brands fa-icon-name",
+  "networkId": "optional-id-for-metrics",
+  "delay": 300
+}
 ```
 
-Find icon names at [Font Awesome](https://fontawesome.com/icons).
+- **icon**: Find icon names at [Font Awesome](https://fontawesome.com/icons).
+- **delay**: Animation delay in milliseconds (stagger them for a cool effect).
+- **networkId**: Matches a key in `assets/social-metrics.json` if you want to show follower counts. Set to `null` if not used.
 
 ---
 
@@ -140,15 +147,17 @@ The page shows live follower counts for each platform. Here's how it works:
 4. **Displays on Site**: The page reads this file and shows the numbers
 
 **Platforms Supported:**
+
 - TikTok
 - YouTube
 - Instagram
 - Bluesky
 - Facebook
- 
+
 ### Updating the Spotlight Card
 
 To change the featured blog post:
+
 1. Open `index.html`.
 2. Find the comment `<!-- Spotlight Section -->`.
 3. Update the `href` (link), `h3` (title), and `p` (description).
@@ -160,17 +169,17 @@ You'll need API credentials for each platform. Store them securely in **GitHub S
 
 Go to: **Repository Settings** → **Secrets and variables** → **Actions**
 
-| Secret Name | Platform | What It Is |
-|-------------|----------|------------|
-| `YT_API_KEY` | YouTube | Your YouTube API key |
-| `YT_CHANNEL_ID` | YouTube | Your channel ID |
-| `IG_ACCESS_TOKEN` | Instagram | Facebook Graph API token |
-| `IG_USER_ID` | Instagram | Your Instagram user ID |
-| `TIKTOK_SESSION_ID` | TikTok | Session cookie from browser |
-| `TIKTOK_USERNAME` | TikTok | Your TikTok username |
-| `BSKY_HANDLE` | Bluesky | Your Bluesky handle |
-| `FB_PAGE_ACCESS_TOKEN` | Facebook | Facebook Page access token |
-| `FB_PAGE_ID` | Facebook | Your Facebook Page ID |
+| Secret Name            | Platform  | What It Is                  |
+| ---------------------- | --------- | --------------------------- |
+| `YT_API_KEY`           | YouTube   | Your YouTube API key        |
+| `YT_CHANNEL_ID`        | YouTube   | Your channel ID             |
+| `IG_ACCESS_TOKEN`      | Instagram | Facebook Graph API token    |
+| `IG_USER_ID`           | Instagram | Your Instagram user ID      |
+| `TIKTOK_SESSION_ID`    | TikTok    | Session cookie from browser |
+| `TIKTOK_USERNAME`      | TikTok    | Your TikTok username        |
+| `BSKY_HANDLE`          | Bluesky   | Your Bluesky handle         |
+| `FB_PAGE_ACCESS_TOKEN` | Facebook  | Facebook Page access token  |
+| `FB_PAGE_ID`           | Facebook  | Your Facebook Page ID       |
 
 > 💡 **Tip:** If a token expires or API fails, the site keeps showing the last known count.
 
@@ -195,6 +204,7 @@ Your site will be live at `https://yourusername.github.io/repo-name/`
 ## 📈 Analytics
 
 The site uses **Google Analytics 4** to track:
+
 - Page views
 - Which links get clicked
 - Device and location info (anonymized)
@@ -218,20 +228,20 @@ To use your own analytics, replace the GA4 ID in `index.html`:
 
 ## 🛠️ Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| HTML5 | Page structure |
-| CSS3 | Styling and animations |
-| Vanilla JavaScript | Interactivity (no frameworks!) |
-| Font Awesome | Icons |
-| GitHub Actions | Automated follower count updates |
-| GitHub Pages | Free hosting |
+| Technology         | Purpose                          |
+| ------------------ | -------------------------------- |
+| HTML5              | Page structure                   |
+| CSS3               | Styling and animations           |
+| Vanilla JavaScript | Interactivity (no frameworks!)   |
+| Font Awesome       | Icons                            |
+| GitHub Actions     | Automated follower count updates |
+| GitHub Pages       | Free hosting                     |
 
 ---
 
 ## 📝 License
 
-This project is open source under the **MIT License**. 
+This project is open source under the **MIT License**.
 
 Feel free to fork it, customize it, and use it for your own link-in-bio page!
 

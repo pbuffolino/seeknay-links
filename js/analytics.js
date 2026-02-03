@@ -70,7 +70,7 @@ copyButtons.forEach((button) => {
 
     try {
       await copyText(text);
-    } catch (error) {
+    } catch {
       return;
     }
 

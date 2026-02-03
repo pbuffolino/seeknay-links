@@ -1,0 +1,4 @@
+# https://site.spawning.ai/ai-txt
+# Attribution required (MIT License)
+User-agent: *
+Allow: /
