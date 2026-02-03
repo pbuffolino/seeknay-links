@@ -1,0 +1,44 @@
+[
+  {
+    "name": "TikTok",
+    "url": "https://www.tiktok.com/@seeknay747",
+    "icon": "fa-brands fa-tiktok",
+    "networkId": "tiktok",
+    "delay": 0
+  },
+  {
+    "name": "YouTube",
+    "url": "https://www.youtube.com/@Seeknay747",
+    "icon": "fa-brands fa-youtube",
+    "networkId": "youtube",
+    "delay": 50
+  },
+  {
+    "name": "Instagram",
+    "url": "https://www.instagram.com/seeknay747",
+    "icon": "fa-brands fa-instagram",
+    "networkId": "instagram",
+    "delay": 100
+  },
+  {
+    "name": "Bluesky",
+    "url": "https://bsky.app/profile/seeknay.com",
+    "icon": "fa-solid fa-cloud",
+    "networkId": "bluesky",
+    "delay": 150
+  },
+  {
+    "name": "Facebook",
+    "url": "https://www.facebook.com/seeknay747",
+    "icon": "fa-brands fa-facebook",
+    "networkId": "facebook",
+    "delay": 200
+  },
+  {
+    "name": "Website",
+    "url": "https://seeknay.com",
+    "icon": "fa-solid fa-link",
+    "networkId": null,
+    "delay": 250
+  }
+]

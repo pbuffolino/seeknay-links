@@ -1,11 +1,19 @@
 {
-    "name": "seeknay-links",
-    "version": "1.0.0",
-    "type": "module",
-    "description": "Social links page with automated follower count updates",
-    "scripts": {
-        "update-metrics": "node scripts/update-social-metrics.mjs"
-    },
-    "author": "seeknay",
-    "license": "MIT"
+  "name": "seeknay-links",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Social links page with automated follower count updates",
+  "scripts": {
+    "update-metrics": "node scripts/update-social-metrics.mjs",
+    "test": "npm run lint",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write ."
+  },
+  "author": "seeknay",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "eslint-plugin-html": "^8.1.4",
+    "prettier": "^3.8.1"
+  }
 }

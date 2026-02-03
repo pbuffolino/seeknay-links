@@ -22,10 +22,8 @@
 
   /* Shadow System */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05),
-    0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
 }
 
 /* Dark Mode Overrides */
@@ -44,13 +42,9 @@ body.dark-mode {
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 
   /* Adjusted gradient for dark mode */
-  background: radial-gradient(800px 800px at 0% 0%,
-      rgba(79, 70, 229, 0.15),
-      transparent 60%),
-    radial-gradient(600px 600px at 100% 100%,
-      rgba(14, 165, 233, 0.15),
-      transparent 60%),
-    var(--bg);
+  background:
+    radial-gradient(800px 800px at 0% 0%, rgba(79, 70, 229, 0.15), transparent 60%),
+    radial-gradient(600px 600px at 100% 100%, rgba(14, 165, 233, 0.15), transparent 60%), var(--bg);
 }
 
 /* ===================================
@@ -67,17 +61,14 @@ body.dark-mode {
    =================================== */
 body {
   min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
 
   /* Gradient background with subtle radial glows in corners */
-  background: radial-gradient(800px 800px at 0% 0%,
-      rgba(79, 70, 229, 0.08),
-      transparent 60%),
-    radial-gradient(600px 600px at 100% 100%,
-      rgba(14, 165, 233, 0.08),
-      transparent 60%),
-    var(--bg);
+  background:
+    radial-gradient(800px 800px at 0% 0%, rgba(79, 70, 229, 0.08), transparent 60%),
+    radial-gradient(600px 600px at 100% 100%, rgba(14, 165, 233, 0.08), transparent 60%), var(--bg);
 
   color: var(--text);
   line-height: 1.5;
@@ -88,7 +79,7 @@ body {
    =================================== */
 .page {
   min-height: 100vh;
-  padding: 48px 24px 64px;
+  padding: calc(48px + env(safe-area-inset-top)) 24px calc(64px + env(safe-area-inset-bottom));
   max-width: 580px;
   margin: 0 auto;
   display: flex;
@@ -158,7 +149,9 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 24px;
   padding: 24px;
-  box-shadow: var(--shadow-md), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  box-shadow:
+    var(--shadow-md),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   margin-bottom: 24px;
   /* Space before links */
   text-align: center;
@@ -168,23 +161,22 @@ body {
 
 /* Subtle shine effect */
 .stats-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(255, 255, 255, 0.4),
-      transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   animation: shine 6s infinite ease-in-out;
 }
 
 body.dark-mode .stats-card {
   background: rgba(30, 41, 59, 0.6);
   border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: var(--shadow-md), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow:
+    var(--shadow-md),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .stats-header {
@@ -258,7 +250,9 @@ body.dark-mode .stats-card {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(79, 70, 229, 0.12) 100%);
   border: 1px solid var(--accent);
   position: relative;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .business-link .link-label {
@@ -273,16 +267,20 @@ body.dark-mode .stats-card {
 }
 
 .business-link::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: -1px;
   border-radius: 20px;
   padding: 1px;
   background: linear-gradient(45deg, var(--accent), transparent);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   pointer-events: none;
   opacity: 0.5;
 }
@@ -452,14 +450,18 @@ body.dark-mode .featured-card:hover {
   color: var(--muted);
   font-size: 1rem;
   opacity: 0.7;
-  transition: transform 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
 }
 
 /* Link Button Hover States */
 .link-button:hover,
 .link-button:focus-visible {
   border-color: var(--hover-border);
-  box-shadow: var(--shadow-md), 0 0 0 3px rgba(79, 70, 229, 0.05);
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 3px rgba(79, 70, 229, 0.05);
   /* Focus ring effect */
   transform: translateY(-2px);
   /* Subtle lift effect */
@@ -669,7 +671,7 @@ body.dark-mode .featured-card:hover {
    =================================== */
 .header-actions {
   position: absolute;
-  top: 16px;
+  top: calc(16px + env(safe-area-inset-top));
   right: 16px;
   display: flex;
   gap: 8px;
@@ -708,7 +710,7 @@ body.dark-mode .action-btn {
 /* Toast Notification */
 .toast-notification {
   position: fixed;
-  bottom: 32px;
+  bottom: calc(32px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%) translateY(20px);
   background: var(--text);

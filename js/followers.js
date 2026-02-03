@@ -4,10 +4,19 @@
  * Handles both individual link counts and the aggregate "Community Stats" card.
  */
 
-document.addEventListener("DOMContentLoaded", () => {
+let metricsData = null;
+
+// Expose global function for other scripts (like links.js) to trigger updates
+window.updateSocialCounts = () => {
+  if (metricsData) {
+    updateUI(metricsData);
+    return;
+  }
+
   fetch("assets/social-metrics.json")
     .then((response) => response.json())
     .then((data) => {
+      metricsData = data;
       updateUI(data);
     })
     .catch((error) => {
@@ -15,6 +24,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const totalEl = document.getElementById("total-followers");
       if (totalEl) totalEl.textContent = "---";
     });
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  window.updateSocialCounts();
 });
 
 function updateUI(data) {
@@ -27,7 +40,7 @@ function updateUI(data) {
     const metric = data[network];
 
     // Safety check: ensure metric exists
-    if (metric && typeof metric.count === 'number') {
+    if (metric && typeof metric.count === "number") {
       // 1. Update Total Aggregate
       totalFollowers += metric.count;
 
@@ -46,7 +59,7 @@ function updateUI(data) {
     if (followersEl && metric) {
       if (metric.display) {
         followersEl.textContent = metric.display;
-      } else if (typeof metric.count === 'number') {
+      } else if (typeof metric.count === "number") {
         followersEl.textContent = `${formatNumber(metric.count)} followers`;
       }
     }
@@ -54,8 +67,12 @@ function updateUI(data) {
 
   // 4. Update Big Total Display
   const totalEl = document.getElementById("total-followers");
-  if (totalEl) {
+  // Only animate if content is not already set or different (to avoid jumpiness on re-runs)
+  if (totalEl && totalEl.textContent === "Loading...") {
     animateValue(totalEl, 0, totalFollowers, 1500);
+  } else if (totalEl) {
+    // If already loaded, just ensure it's formatted (no animation on re-render)
+    totalEl.textContent = formatCompactNumber(totalFollowers);
   }
 }
 
@@ -73,7 +90,7 @@ function formatCompactNumber(num) {
  * Formats a number with commas (e.g., 1200 -> 1,200)
  */
 function formatNumber(num) {
-  return new Intl.NumberFormat('en-US').format(num);
+  return new Intl.NumberFormat("en-US").format(num);
 }
 
 /**

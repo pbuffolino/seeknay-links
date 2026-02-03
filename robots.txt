@@ -1,3 +1,6 @@
+# AI and Crawlers
+# We allow AI bots to crawl the site, provided they respect the license (attribution required).
 User-agent: *
 Allow: /
+
 Sitemap: https://links.seeknay.com/sitemap.xml
