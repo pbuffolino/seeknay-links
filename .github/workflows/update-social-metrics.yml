@@ -61,5 +61,8 @@ jobs:
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
         run: gh pr merge --squash --auto "${{ steps.cpr.outputs.pull-request-number }}"
+      - name: Trigger CI Checks
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        run: gh workflow run CI --ref update-social-metrics
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
