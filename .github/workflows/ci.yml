@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Link Checker
-        uses: lycheeverse/lychee-action@v2.7.0
+        uses: lycheeverse/lychee-action@v2.8.0
         with:
           args: --verbose --no-progress --exclude 'localhost:3000' --exclude 'googletagmanager.com' './**/*.md' './**/*.html'
           fail: true
