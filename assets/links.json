@@ -23,7 +23,7 @@
   {
     "name": "Bluesky",
     "url": "https://bsky.app/profile/seeknay.com",
-    "icon": "fa-solid fa-cloud",
+    "icon": "fa-brands fa-bluesky",
     "networkId": "bluesky",
     "delay": 150
   },
