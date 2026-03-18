@@ -2,18 +2,26 @@
  * UI CONTROLLER
  * Handles Theme Toggling and Share functionality.
  */
+/* global gtag */
 
 // DOM Elements
 const body = document.body;
+
+// Stored timeout ID for toast (prevents race condition on rapid clicks)
+let toastTimeout = null;
 
 /**
  * THEME MANAGEMENT
  */
 function initTheme() {
-  const savedTheme = localStorage.getItem("theme");
+  let savedTheme = null;
+  try {
+    savedTheme = localStorage.getItem("theme");
+  } catch {
+    // localStorage unavailable (e.g. Safari private browsing)
+  }
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-  // Apply theme if saved or if system prefers dark and no save exists
   if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
     body.classList.add("dark-mode");
   }
@@ -22,23 +30,44 @@ function initTheme() {
 function toggleTheme() {
   body.classList.toggle("dark-mode");
   const isDark = body.classList.contains("dark-mode");
-  localStorage.setItem("theme", isDark ? "dark" : "light");
+
+  try {
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  } catch {
+    // localStorage unavailable
+  }
+
   updateThemeIcon();
+  updateThemeColor();
+
+  if (typeof gtag === "function") {
+    gtag("event", "theme_toggle", { theme: isDark ? "dark" : "light" });
+  }
 }
 
 function updateThemeIcon() {
   const themeBtn = document.getElementById("theme-toggle");
   if (!themeBtn) return;
 
-  // We expect an <i> element inside the button
   const icon = themeBtn.querySelector("i");
   if (!icon) return;
 
   if (body.classList.contains("dark-mode")) {
     icon.className = "fa-solid fa-sun";
+    themeBtn.setAttribute("aria-label", "Switch to light mode");
   } else {
     icon.className = "fa-solid fa-moon";
+    themeBtn.setAttribute("aria-label", "Switch to dark mode");
   }
+}
+
+function updateThemeColor() {
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (!metaThemeColor) return;
+  metaThemeColor.setAttribute(
+    "content",
+    body.classList.contains("dark-mode") ? "#0f172a" : "#f8fafc"
+  );
 }
 
 /**
@@ -59,6 +88,10 @@ async function shareProfile() {
       await navigator.clipboard.writeText(window.location.href);
       showToast("Link copied to clipboard!");
     }
+
+    if (typeof gtag === "function") {
+      gtag("event", "share", { method: navigator.share ? "native" : "clipboard" });
+    }
   } catch (err) {
     console.warn("Share canceled or failed:", err);
   }
@@ -72,6 +105,8 @@ function showToast(message) {
     toast = document.createElement("div");
     toast.id = "ui-toast";
     toast.className = "toast-notification";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
     document.body.appendChild(toast);
   }
 
@@ -82,9 +117,14 @@ function showToast(message) {
     toast.classList.add("show");
   });
 
-  // Hide after timeout
-  setTimeout(() => {
+  // Clear any existing timeout to prevent premature hide on rapid clicks
+  if (toastTimeout) {
+    clearTimeout(toastTimeout);
+  }
+
+  toastTimeout = setTimeout(() => {
     toast.classList.remove("show");
+    toastTimeout = null;
   }, 2500);
 }
 
@@ -96,8 +136,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. Bind Theme Toggle
   const themeBtn = document.getElementById("theme-toggle");
   if (themeBtn) {
-    // Set initial icon state based on what initTheme() did
     updateThemeIcon();
+    updateThemeColor();
     themeBtn.addEventListener("click", toggleTheme);
   }
 

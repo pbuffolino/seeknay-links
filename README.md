@@ -1,6 +1,6 @@
 # seeknay Links
 
-> 🔗 My personal link-in-bio page — one place for all my social profiles and contact info.
+> 🔗 An open-source link-in-bio template — fork it, customize it, deploy it for free.
 
 [![Live Site](https://img.shields.io/badge/🌐_Visit_Site-links.seeknay.com-4f46e5?style=for-the-badge)](https://links.seeknay.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
@@ -9,117 +9,45 @@
 
 ---
 
-## 👋 What Is This?
+## What Is This?
 
-This is the source code for my personal "link-in-bio" landing page at [links.seeknay.com](https://links.seeknay.com/). Think of it like Linktree, but built from scratch with a modern design.
-
-**Why build my own?** Full control over the design, no subscriptions, and I get to track my own analytics!
+A self-hosted alternative to Linktree, built with no frameworks and no build step — just vanilla HTML, CSS, and JavaScript. All links and content are driven by JSON files, making customization straightforward without touching any HTML.
 
 ---
 
-## ✨ Features
+## Features
 
-| Feature                   | Description                                                |
-| ------------------------- | ---------------------------------------------------------- |
-| **🎨 Modern Design**      | Glass-style cards, smooth animations, and a clean look     |
-| **🌓 Dark/Light Mode**    | Click the moon icon to switch themes                       |
-| **📱 Mobile Friendly**    | Looks great on phones, tablets, and desktops               |
-| **📊 Follower Counts**    | Automatically displays my follower counts across platforms |
-| **📈 Analytics**          | Tracks which links get clicked (using Google Analytics)    |
-| **🔗 Easy Sharing**       | Click the share button to send my page to others           |
-| **⭐ Featured Spotlight** | Highlight your latest content with a special card          |
-| **⚡ Fast Loading**       | No heavy frameworks — just clean, simple code              |
-
----
-
-## 🌐 Live Site
-
-**Visit:** [links.seeknay.com](https://links.seeknay.com/)
-
-The site updates automatically whenever I push changes to this repository.
+| Feature                   | Description                                                    |
+| ------------------------- | -------------------------------------------------------------- |
+| **🎨 Modern Design**      | Glass-style cards, smooth animations, and a clean look         |
+| **🌓 Dark/Light Mode**    | Theme toggle built in                                          |
+| **📱 Mobile Friendly**    | Responsive layout for phones, tablets, and desktops            |
+| **📊 Follower Counts**    | Displays live follower counts fetched daily via GitHub Actions |
+| **📈 Analytics**          | GA4 event tracking for link clicks                             |
+| **🔗 Easy Sharing**       | Share button with Web Share API fallback                       |
+| **⭐ Featured Spotlight** | Highlight a piece of content with a special card               |
+| **⚡ Fast Loading**       | No heavy frameworks — minimal, dependency-free code            |
 
 ---
 
-## 🚀 Quick Start (For Developers)
+## Fork and Customize
 
-Want to run this locally or fork it for yourself? Here's how:
-
-### Prerequisites
-
-- A web browser (Chrome, Firefox, Edge, Safari)
-- [Node.js](https://nodejs.org/) (optional, for local server)
-
-### Run Locally
+### 1. Fork and clone
 
 ```bash
-# Clone the repository
-git clone https://github.com/pbuffolino/seeknay-links.git
+git clone https://github.com/YOUR_USERNAME/seeknay-links.git
 cd seeknay-links
-
-# Start a local server (pick one):
-npx -y serve .              # Node.js method
-python -m http.server 3000  # Python method
 ```
 
-Then open [http://localhost:3000](http://localhost:3000) in your browser.
+### 2. Replace profile content
 
----
+- Swap `assets/avatar.jpg` with your photo
+- Edit the name, bio, and spotlight card in `index.html` (search for `<!-- Profile Section -->` and `<!-- Spotlight Section -->`)
+- Update the spotlight card's `href`, `h3`, `p`, and `data-link-name` attributes
 
-## 📂 Project Structure
+### 3. Update your links
 
-```
-seeknay-links/
-├── assets/                 # Images and data
-│   ├── avatar.jpg          # My profile picture
-│   ├── og.png              # Image shown when sharing links
-│   ├── links.json          # Configuration for all social links
-│   └── social-metrics.json # Follower counts (auto-updated daily)
-├── css/
-│   └── styles.css          # All the styling
-├── js/
-│   ├── analytics.js        # Google Analytics tracking
-│   ├── followers.js        # Displays follower counts
-│   ├── links.js            # Dynamically loads links from JSON
-│   └── ui.js               # Theme toggle and share button
-├── scripts/
-│   └── update-social-metrics.mjs  # Script that fetches follower counts
-├── .github/workflows/
-│   ├── update-social-metrics.yml  # Runs the script daily
-│   └── ci.yml                     # Continuous Integration checks
-├── index.html              # The main page
-├── robots.txt              # Instructions for search engines
-├── sitemap.xml             # Helps search engines find the page
-├── eslint.config.mjs       # Linting configuration
-└── README.md               # You're reading this!
-```
-
----
-
-## 🎨 Customization
-
-### Want to use this for yourself?
-
-1. **Fork this repository**
-2. **Replace my info with yours:**
-   - Update `assets/avatar.jpg` with your photo
-   - Edit the name and bio in `index.html`
-   - Update `assets/links.json` with your social profiles
-3. **Deploy for free** using [GitHub Pages](https://pages.github.com/)
-
-### Changing Colors
-
-Edit the colors at the top of `css/styles.css`:
-
-```css
-:root {
-  --accent: #4f46e5; /* Main accent color (purple) */
-  --bg: #f8fafc; /* Background color */
-}
-```
-
-### Adding a New Social Link
-
-Edit `assets/links.json` to add a new entry:
+Edit `assets/links.json` — this file drives all the link cards:
 
 ```json
 {
@@ -131,138 +59,103 @@ Edit `assets/links.json` to add a new entry:
 }
 ```
 
-- **icon**: Find icon names at [Font Awesome](https://fontawesome.com/icons).
-- **delay**: Animation delay in milliseconds (stagger them for a cool effect).
-- **networkId**: Matches a key in `assets/social-metrics.json` if you want to show follower counts. Set to `null` if not used.
+- **icon**: Find names at [Font Awesome](https://fontawesome.com/icons)
+- **delay**: Animation stagger in milliseconds
+- **networkId**: Matches a key in `assets/social-metrics.json` to display follower counts; set to `null` if not used
 
----
+### 4. Set your accent color
 
-## 📊 How Follower Counts Work
+Edit the top of `css/styles.css`:
 
-The page shows live follower counts for each platform. Here's how it works:
+```css
+:root {
+  --accent: #4f46e5; /* Main accent color */
+  --bg: #f8fafc; /* Background color */
+}
+```
 
-1. **Daily Automation**: A GitHub Action runs once per day
-2. **Fetches Data**: It contacts each platform's API to get current counts
-3. **Saves Results**: The counts are saved to `assets/social-metrics.json`
-4. **Displays on Site**: The page reads this file and shows the numbers
+### 5. Set up analytics (optional)
 
-**Platforms Supported:**
-
-- TikTok
-- YouTube
-- Instagram
-- Bluesky
-- Facebook
-
-### Updating the Spotlight Card
-
-To change the featured blog post:
-
-1. Open `index.html`.
-2. Find the comment `<!-- Spotlight Section -->`.
-3. Update the `href` (link), `h3` (title), and `p` (description).
-4. Update the `data-link-name` attribute for analytics tracking.
-
-### Setting Up Follower Counts (For Your Own Fork)
-
-You'll need API credentials for each platform. Store them securely in **GitHub Secrets** (never in the code!).
-
-Go to: **Repository Settings** → **Secrets and variables** → **Actions**
-
-| Secret Name            | Platform  | What It Is                  |
-| ---------------------- | --------- | --------------------------- |
-| `YT_API_KEY`           | YouTube   | Your YouTube API key        |
-| `YT_CHANNEL_ID`        | YouTube   | Your channel ID             |
-| `IG_ACCESS_TOKEN`      | Instagram | Facebook Graph API token    |
-| `IG_USER_ID`           | Instagram | Your Instagram user ID      |
-| `TIKTOK_SESSION_ID`    | TikTok    | Session cookie from browser |
-| `TIKTOK_USERNAME`      | TikTok    | Your TikTok username        |
-| `BSKY_HANDLE`          | Bluesky   | Your Bluesky handle         |
-| `FB_PAGE_ACCESS_TOKEN` | Facebook  | Facebook Page access token  |
-| `FB_PAGE_ID`           | Facebook  | Your Facebook Page ID       |
-
-> 💡 **Tip:** If a token expires or API fails, the site keeps showing the last known count.
-
----
-
-## 🚀 Deployment
-
-This site is hosted for **free** on [GitHub Pages](https://pages.github.com/).
-
-### How to Deploy Your Own
-
-1. Push your code to a GitHub repository
-2. Go to **Settings** → **Pages**
-3. Under "Source," select **Deploy from a branch**
-4. Choose the `main` branch
-5. (Optional) Add a custom domain in the **Custom domain** field
-
-Your site will be live at `https://yourusername.github.io/repo-name/`
-
----
-
-## 📈 Analytics
-
-The site uses **Google Analytics 4** to track:
-
-- Page views
-- Which links get clicked
-- Device and location info (anonymized)
-
-To use your own analytics, replace the GA4 ID in `index.html`:
+Replace the GA4 measurement ID in `index.html`:
 
 ```html
 <script src="https://www.googletagmanager.com/gtag/js?id=YOUR-ID-HERE"></script>
 ```
 
----
+Remove both the GTM script tag and the `gtag` initialization block entirely if you don't want analytics.
 
-## 🛡️ Security
+### 6. Deploy to GitHub Pages
 
-- ✅ **No API keys in code** — all secrets stored in GitHub Secrets
-- ✅ **Content Security Policy** — restricts what scripts can run
-- ✅ **IP anonymization** — respects visitor privacy in analytics
-- ✅ **HTTPS enforced** — via GitHub Pages
+1. Push to a GitHub repository
+2. Go to **Settings** → **Pages**
+3. Set source to **Deploy from a branch**, select `main`
+4. (Optional) Add a custom domain
 
----
-
-## 🛠️ Tech Stack
-
-| Technology         | Purpose                          |
-| ------------------ | -------------------------------- |
-| HTML5              | Page structure                   |
-| CSS3               | Styling and animations           |
-| Vanilla JavaScript | Interactivity (no frameworks!)   |
-| Font Awesome       | Icons                            |
-| GitHub Actions     | Automated follower count updates |
-| GitHub Pages       | Free hosting                     |
+The site will be live at `https://yourusername.github.io/repo-name/`.
 
 ---
 
-## 📝 License
+## Follower Counts
 
-This project is open source under the **MIT License**.
+A GitHub Actions workflow runs daily at 14:17 UTC, fetches counts from each platform's API, and commits the results to `assets/social-metrics.json`. The page reads that file on load.
 
-Feel free to fork it, customize it, and use it for your own link-in-bio page!
+**Supported platforms:** TikTok, YouTube, Instagram, X (Twitter), Bluesky, Facebook
+
+### Required secrets
+
+Add these to **Repository Settings → Secrets and variables → Actions**:
+
+| Secret Name            | Platform  | What It Is                      |
+| ---------------------- | --------- | ------------------------------- |
+| `YT_API_KEY`           | YouTube   | YouTube Data API v3 key         |
+| `YT_CHANNEL_ID`        | YouTube   | Your channel ID                 |
+| `IG_ACCESS_TOKEN`      | Instagram | Facebook Graph API token        |
+| `IG_USER_ID`           | Instagram | Your Instagram user ID          |
+| `TIKTOK_SESSION_ID`    | TikTok    | `sessionid` cookie from browser |
+| `TIKTOK_MS_TOKEN`      | TikTok    | `msToken` cookie from browser   |
+| `TIKTOK_USERNAME`      | TikTok    | Your TikTok username            |
+| `X_BEARER_TOKEN`       | X         | X (Twitter) API v2 Bearer Token |
+| `X_USERNAME`           | X         | Your X username (without `@`)   |
+| `BSKY_HANDLE`          | Bluesky   | Your Bluesky handle             |
+| `FB_PAGE_ACCESS_TOKEN` | Facebook  | Facebook Page access token      |
+| `FB_PAGE_ID`           | Facebook  | Your Facebook Page ID           |
+
+> **Tip:** If a token expires or an API call fails, the site keeps showing the last cached count from `social-metrics.json`.
+
+### Adding a new platform
+
+1. Add a link entry to `assets/links.json` with a `networkId`
+2. Add a fetch handler in `scripts/update-social-metrics.mjs`
+3. Add the required secrets to `.github/workflows/update-social-metrics.yml`
 
 ---
 
-## 🙏 Acknowledgments
+## Project Structure
 
-- [Font Awesome](https://fontawesome.com/) — Icon library
-- [Google Antigravity](https://antigravity.google/) — AI coding assistant that helped build this
-- [GitHub Pages](https://pages.github.com/) — Free hosting
+```
+seeknay-links/
+├── assets/
+│   ├── avatar.jpg                     # Profile picture
+│   ├── og.png                         # Open Graph preview image
+│   ├── links.json                     # Source of truth for link cards
+│   └── social-metrics.json            # Follower counts (auto-updated daily)
+├── css/
+│   └── styles.css                     # All styling; CSS custom properties for theming
+├── js/
+│   ├── analytics.js                   # GA4 event tracking
+│   ├── followers.js                   # Renders follower counts
+│   ├── links.js                       # Renders link cards from links.json
+│   └── ui.js                          # Theme toggle and share button
+├── scripts/
+│   └── update-social-metrics.mjs      # Fetches live metrics (runs in CI)
+├── .github/workflows/
+│   ├── ci.yml                         # Lint + link-check + audit on push/PR
+│   └── update-social-metrics.yml      # Daily metrics update
+└── index.html                         # Single-page entry point
+```
 
 ---
 
-## 📬 Contact
+## License
 
-- **Website:** [seeknay.com](https://seeknay.com)
-- **Links Page:** [links.seeknay.com](https://links.seeknay.com)
-- **Email:** contact@seeknay.com
-
----
-
-<p align="center">
-  <strong>Built with ❤️ by <a href="https://seeknay.com">seeknay</a> using <a href="https://antigravity.google/">Google Antigravity</a></strong>
-</p>
+MIT — free to fork, customize, and use for your own link-in-bio page. See [LICENSE](LICENSE).

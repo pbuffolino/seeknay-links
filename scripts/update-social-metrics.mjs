@@ -123,10 +123,8 @@ async function getInstagramFollowers() {
   const data = await res.json();
 
   if (!res.ok) {
-    // 🛡️ SECURITY: Log only the error message, not the full object which might contain reflected tokens
-    throw new Error(
-      `Instagram API error ${res.status}: ${data?.error?.message || "Unknown error"}`
-    );
+    // 🛡️ SECURITY: Log only the HTTP status — API error bodies may reflect request details
+    throw new Error(`Instagram API error ${res.status}`);
   }
 
   if (data?.followers_count == null) {
@@ -221,8 +219,8 @@ async function getXFollowers() {
   const data = await res.json();
 
   if (!res.ok) {
-    // 🛡️ SECURITY: Log safe error details
-    throw new Error(`X API error ${res.status}: ${data?.detail || data?.title || "Unknown error"}`);
+    // 🛡️ SECURITY: Log only the HTTP status — API error bodies may reflect request details
+    throw new Error(`X API error ${res.status}`);
   }
 
   const count = data?.data?.public_metrics?.followers_count;
@@ -292,10 +290,8 @@ async function getFacebookFollowers() {
   const data = await res.json();
 
   if (!res.ok) {
-    // 🛡️ SECURITY: Log only error code and safe message, never the full response
-    // which could contain reflected token fragments in some error types
-    const safeMessage = data?.error?.message?.substring(0, 100) || "Unknown error";
-    throw new Error(`Facebook API error ${res.status}: ${safeMessage}`);
+    // 🛡️ SECURITY: Log only the HTTP status — API error bodies may reflect request details
+    throw new Error(`Facebook API error ${res.status}`);
   }
 
   if (data?.followers_count == null) {
