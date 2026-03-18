@@ -27,9 +27,15 @@ function renderLinks(links, container) {
   const fragment = document.createDocumentFragment();
 
   links.forEach((link) => {
+    // L3: Validate URL to prevent javascript: injection from a compromised links.json
+    const url = link.url;
+    if (typeof url !== "string" || (!url.startsWith("https://") && !url.startsWith("http://"))) {
+      return;
+    }
+
     const a = document.createElement("a");
     a.className = "link-button";
-    a.href = link.url;
+    a.href = url;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
 

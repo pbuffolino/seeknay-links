@@ -1,91 +1,74 @@
 /**
  * ANALYTICS MODULE
- * Initializes Google Analytics 4 (GA4) and handles event tracking.
- * - Tracks 'link_click' events with custom parameters
- * - Handles 'contact_copy' events
+ * Initializes Google Analytics 4 (GA4) conditionally based on user cookie consent.
+ * Consent state is persisted in localStorage under the key 'analytics_consent'.
+ * Values: 'granted' | 'denied' | absent (no decision yet — show banner)
+ *
+ * H1 FIX: GA4 is never loaded without explicit user consent.
  */
-window.dataLayer = window.dataLayer || [];
-function gtag() {
-  window.dataLayer.push(arguments);
+
+const GA_ID = "G-C9JSC7H6WW";
+const CONSENT_KEY = "analytics_consent";
+
+function loadGA() {
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () {
+    window.dataLayer.push(arguments);
+  };
+
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
+  document.head.appendChild(script);
+
+  window.gtag("js", new Date());
+  window.gtag("config", GA_ID, { anonymize_ip: true });
 }
 
-gtag("js", new Date());
-gtag("config", "G-C9JSC7H6WW", { anonymize_ip: true });
+function initConsent() {
+  const consent = localStorage.getItem(CONSENT_KEY);
 
-const linkSelector = "a[data-link-name]";
-
-const sendLinkEvent = (linkName, linkUrl) => {
-  if (typeof gtag !== "function") {
+  if (consent === "granted") {
+    loadGA();
     return;
   }
 
-  gtag("event", "link_click", {
-    link_name: linkName,
-    link_url: linkUrl,
-    transport: "beacon",
+  if (consent === "denied") {
+    return;
+  }
+
+  // No decision yet — show the banner
+  const banner = document.getElementById("cookie-consent-banner");
+  if (!banner) return;
+  banner.hidden = false;
+
+  document.getElementById("consent-accept").addEventListener("click", function () {
+    localStorage.setItem(CONSENT_KEY, "granted");
+    banner.hidden = true;
+    loadGA();
   });
-};
 
-document.addEventListener("click", (event) => {
-  const anchor = event.target.closest(linkSelector);
-  if (!anchor) {
-    return;
-  }
+  document.getElementById("consent-decline").addEventListener("click", function () {
+    localStorage.setItem(CONSENT_KEY, "denied");
+    banner.hidden = true;
+  });
+}
+
+// Link click tracking — only fires if gtag is available (i.e., consent was granted)
+document.addEventListener("click", function (event) {
+  const anchor = event.target.closest("a[data-link-name]");
+  if (!anchor) return;
 
   const href = anchor.getAttribute("href");
-  if (!href) {
-    return;
-  }
+  if (!href) return;
 
-  const linkName = anchor.dataset.linkName || anchor.textContent.trim();
-  const linkUrl = anchor.dataset.linkUrl || href;
+  if (typeof window.gtag !== "function") return;
 
-  sendLinkEvent(linkName, linkUrl);
-});
-
-const copyText = async (text) => {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "absolute";
-  textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
-};
-
-const copyButtons = document.querySelectorAll("[data-copy]");
-copyButtons.forEach((button) => {
-  button.addEventListener("click", async () => {
-    const text = button.dataset.copy;
-    if (!text) {
-      return;
-    }
-
-    try {
-      await copyText(text);
-    } catch {
-      return;
-    }
-
-    button.classList.add("is-copied");
-
-    if (typeof gtag === "function") {
-      gtag("event", "contact_copy", { method: "clipboard" });
-    }
-
-    if (button.copyTimer) {
-      clearTimeout(button.copyTimer);
-    }
-
-    button.copyTimer = setTimeout(() => {
-      button.classList.remove("is-copied");
-    }, 2000);
+  window.gtag("event", "link_click", {
+    link_name: anchor.dataset.linkName || anchor.textContent.trim(),
+    link_url: anchor.dataset.linkUrl || href,
+    transport: "beacon",
   });
 });
+
+document.addEventListener("DOMContentLoaded", initConsent);

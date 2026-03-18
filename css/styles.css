@@ -486,144 +486,6 @@ body.dark-mode .featured-card:hover {
 }
 
 /* ===================================
-   CONTACT SECTION
-   =================================== */
-.contact-card {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 10px 8px 24px;
-  min-height: 72px;
-  border-radius: 24px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  margin-top: 16px;
-}
-
-.contact-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-weight: 500;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-.contact-icon {
-  color: var(--accent);
-  font-size: 1.1rem;
-}
-
-.contact-email {
-  color: var(--text);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.15s ease;
-}
-
-.contact-email:hover,
-.contact-email:focus-visible {
-  color: var(--accent);
-}
-
-/* ===================================
-   COPY-TO-CLIPBOARD BUTTON
-   =================================== */
-.copy-button {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  border: 1px solid transparent;
-  background: #f1f5f9;
-  /* Slate 100 */
-  color: var(--text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1.1rem;
-}
-
-.copy-button:hover,
-.copy-button:focus-visible {
-  background: #e2e8f0;
-  /* Slate 200 */
-  transform: scale(1.05);
-}
-
-.copy-button:active {
-  transform: scale(0.95);
-}
-
-/* Copy/Check Icon Toggle States */
-.icon-check {
-  position: absolute;
-  opacity: 0;
-  transform: scale(0.5);
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  color: #10b981;
-  /* Green 500 - Success color */
-}
-
-.icon-copy {
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  color: var(--muted);
-}
-
-/* Tooltip for "Copied!" feedback */
-.copy-tooltip {
-  position: absolute;
-  top: -40px;
-  right: 0;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 8px;
-  background: var(--text);
-  color: white;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: all 0.2s ease;
-  pointer-events: none;
-  white-space: nowrap;
-  box-shadow: var(--shadow-lg);
-}
-
-/* Tooltip arrow (small triangle at bottom) */
-.copy-tooltip::after {
-  content: "";
-  position: absolute;
-  bottom: -4px;
-  right: 22px;
-  width: 8px;
-  height: 8px;
-  background: var(--text);
-  transform: rotate(45deg);
-}
-
-/* Active state when copy button is clicked */
-.copy-button.is-copied .icon-copy {
-  opacity: 0;
-  transform: scale(0.5);
-}
-
-.copy-button.is-copied .icon-check {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.copy-button.is-copied .copy-tooltip {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ===================================
    FOOTER
    =================================== */
 .footer {
@@ -648,6 +510,31 @@ body.dark-mode .featured-card:hover {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+
+  20% {
+    left: 100%;
+  }
+
+  100% {
+    left: 100%;
+  }
+}
+
+/* Respect user's motion preferences (WCAG 2.1 AA) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -773,4 +660,106 @@ body.dark-mode .action-btn {
 .contact-subtitle {
   font-size: 0.8rem;
   opacity: 0.9;
+}
+
+/* ===================================
+   404 PAGE
+   =================================== */
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.not-found h1 {
+  font-size: 5rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.not-found p {
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.not-found a {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 12px 28px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* ===================================
+   COOKIE CONSENT BANNER
+   =================================== */
+#cookie-consent-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 1000;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+#cookie-consent-banner[hidden] {
+  display: none;
+}
+
+#cookie-consent-banner p {
+  font-size: 0.875rem;
+  color: var(--muted);
+  flex: 1;
+}
+
+.consent-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.consent-btn {
+  padding: 8px 16px;
+  border-radius: 99px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.consent-btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.consent-btn--secondary {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+  #cookie-consent-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

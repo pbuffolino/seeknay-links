@@ -46,7 +46,7 @@ npm run update-metrics  # Fetch live follower counts (requires env vars; normall
 - **Formatting:** 2-space indent, double quotes, ES5 trailing commas, 100-char line width (Prettier)
 - **CSP:** No inline scripts in HTML — the Content Security Policy in `index.html` enforces this
 - **Secrets:** No hardcoded credentials anywhere — all secrets via GitHub Actions environment variables
-- **Adding a new social platform:** add an entry to `assets/links.json` and add a handler in `scripts/update-social-metrics.mjs`
+- **Adding a new social platform:** add an entry to `assets/links.json`, add a handler in `scripts/update-social-metrics.mjs`, and add the required secrets to `.github/workflows/update-social-metrics.yml`
 
 ---
 

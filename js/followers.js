@@ -14,7 +14,10 @@ window.updateSocialCounts = () => {
   }
 
   fetch("assets/social-metrics.json")
-    .then((response) => response.json())
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      return response.json();
+    })
     .then((data) => {
       metricsData = data;
       updateUI(data);
@@ -67,9 +70,15 @@ function updateUI(data) {
 
   // 4. Update Big Total Display
   const totalEl = document.getElementById("total-followers");
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   // Only animate if content is not already set or different (to avoid jumpiness on re-runs)
   if (totalEl && totalEl.textContent === "Loading...") {
-    animateValue(totalEl, 0, totalFollowers, 1500);
+    if (prefersReducedMotion) {
+      totalEl.textContent = formatCompactNumber(totalFollowers);
+    } else {
+      animateValue(totalEl, 0, totalFollowers, 1500);
+    }
   } else if (totalEl) {
     // If already loaded, just ensure it's formatted (no animation on re-render)
     totalEl.textContent = formatCompactNumber(totalFollowers);
