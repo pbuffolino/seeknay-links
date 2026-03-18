@@ -55,7 +55,7 @@ jobs:
           commit-message: "chore: update social metrics [skip ci]"
           title: "chore: update social metrics"
           body: "Automated social metrics update."
-          branch: "update-social-metrics"
+          branch: "chore/update-social-metrics"
           base: "main"
           delete-branch: true
 
@@ -66,6 +66,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Trigger CI Checks
         if: steps.cpr.outputs.pull-request-operation == 'created'
-        run: gh workflow run CI --ref update-social-metrics
+        run: gh workflow run CI --ref chore/update-social-metrics
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
