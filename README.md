@@ -1,17 +1,25 @@
-# seeknay Links
+<div align="center">
 
-> 🔗 An open-source link-in-bio template — fork it, customize it, deploy it for free.
+# 🔗 seeknay Links
+
+**An open-source link-in-bio template. Fork it, customize it, deploy it for free.**
+
+A self-hosted alternative to Linktree, built with no frameworks and no build step. Just vanilla HTML, CSS, and JavaScript, all driven by simple JSON files.
 
 [![Live Site](https://img.shields.io/badge/🌐_Visit_Site-links.seeknay.com-4f46e5?style=for-the-badge)](https://links.seeknay.com/)
+[![CI](https://img.shields.io/github/actions/workflow/status/pbuffolino/seeknay-links/ci.yml?style=for-the-badge&label=CI)](https://github.com/pbuffolino/seeknay-links/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-222?style=for-the-badge&logo=githubpages&logoColor=white)
+
+[**Live Demo**](https://links.seeknay.com/) · [**Report Bug**](https://github.com/pbuffolino/seeknay-links/issues/new/choose) · [**Request Feature**](https://github.com/pbuffolino/seeknay-links/issues/new/choose)
 
 ![Preview of seeknay links page](assets/og.png)
 
----
-
-## What Is This?
-
-A self-hosted alternative to Linktree, built with no frameworks and no build step — just vanilla HTML, CSS, and JavaScript. All links and content are driven by JSON files, making customization straightforward without touching any HTML.
+</div>
 
 ---
 
@@ -26,7 +34,7 @@ A self-hosted alternative to Linktree, built with no frameworks and no build ste
 | **📈 Analytics**          | GA4 event tracking for link clicks                             |
 | **🔗 Easy Sharing**       | Share button with Web Share API fallback                       |
 | **⭐ Featured Spotlight** | Highlight a piece of content with a special card               |
-| **⚡ Fast Loading**       | No heavy frameworks — minimal, dependency-free code            |
+| **⚡ Fast Loading**       | No heavy frameworks; minimal, dependency-free code             |
 
 ---
 
@@ -47,7 +55,7 @@ cd seeknay-links
 
 ### 3. Update your links
 
-Edit `assets/links.json` — this file drives all the link cards:
+Edit `assets/links.json`. This file drives all the link cards:
 
 ```json
 {
@@ -105,18 +113,19 @@ A GitHub Actions workflow runs daily at 14:17 UTC, fetches counts from each plat
 
 Add these to **Repository Settings → Secrets and variables → Actions**:
 
-| Secret Name            | Platform  | What It Is                      |
-| ---------------------- | --------- | ------------------------------- |
-| `YT_API_KEY`           | YouTube   | YouTube Data API v3 key         |
-| `YT_CHANNEL_ID`        | YouTube   | Your channel ID                 |
-| `IG_ACCESS_TOKEN`      | Instagram | Facebook Graph API token        |
-| `IG_USER_ID`           | Instagram | Your Instagram user ID          |
-| `TIKTOK_SESSION_ID`    | TikTok    | `sessionid` cookie from browser |
-| `TIKTOK_MS_TOKEN`      | TikTok    | `msToken` cookie from browser   |
-| `TIKTOK_USERNAME`      | TikTok    | Your TikTok username            |
-| `BSKY_HANDLE`          | Bluesky   | Your Bluesky handle             |
-| `FB_PAGE_ACCESS_TOKEN` | Facebook  | Facebook Page access token      |
-| `FB_PAGE_ID`           | Facebook  | Your Facebook Page ID           |
+| Secret Name            | Platform  | What It Is                                                         |
+| ---------------------- | --------- | ------------------------------------------------------------------ |
+| `YT_API_KEY`           | YouTube   | YouTube Data API v3 key                                            |
+| `YT_CHANNEL_ID`        | YouTube   | Your channel ID                                                    |
+| `IG_ACCESS_TOKEN`      | Instagram | Facebook Graph API token                                           |
+| `IG_USER_ID`           | Instagram | Your Instagram user ID                                             |
+| `TIKTOK_SESSION_ID`    | TikTok    | `sessionid` cookie from browser                                    |
+| `TIKTOK_MS_TOKEN`      | TikTok    | `msToken` cookie from browser                                      |
+| `TIKTOK_USERNAME`      | TikTok    | Your TikTok username                                               |
+| `BSKY_HANDLE`          | Bluesky   | Your Bluesky handle                                                |
+| `FB_PAGE_ACCESS_TOKEN` | Facebook  | Facebook Page access token                                         |
+| `FB_PAGE_ID`           | Facebook  | Your Facebook Page ID                                              |
+| `METRICS_PAT`          | GitHub    | Personal access token used to open the daily metrics PR so CI runs |
 
 > **Tip:** If a token expires or an API call fails, the site keeps showing the last cached count from `social-metrics.json`.
 
@@ -154,6 +163,32 @@ seeknay-links/
 
 ---
 
+## Local Development
+
+No build step or local server is required. Open `index.html` directly in a browser. The only tooling is for linting and formatting:
+
+```bash
+npm install        # Install dev dependencies (ESLint, Prettier)
+npm run lint       # ESLint + Prettier check (also runs as `npm test`)
+npm run format     # Auto-fix formatting with Prettier
+```
+
+CI runs `lint → link-check (Lychee) → npm audit` on every push and pull request.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](.github/CONTRIBUTING.md) for the workflow and coding standards before opening a pull request.
+
+---
+
+## Security
+
+Found a vulnerability? Please follow the responsible-disclosure process in [SECURITY.md](.github/SECURITY.md). Do not open a public issue.
+
+---
+
 ## License
 
-MIT — free to fork, customize, and use for your own link-in-bio page. See [LICENSE](LICENSE).
+MIT. Free to fork, customize, and use for your own link-in-bio page. See [LICENSE](LICENSE).
