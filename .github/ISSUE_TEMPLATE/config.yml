@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔐 Report a security vulnerability
+    url: https://github.com/pbuffolino/seeknay-links/security/policy
+    about: Please do NOT open a public issue. Follow the responsible-disclosure process in our Security Policy.
+  - name: 🤝 Collaboration & business inquiries
+    url: mailto:contact@seeknay.com
+    about: For partnerships, sponsorship, or general contact, email contact@seeknay.com.
