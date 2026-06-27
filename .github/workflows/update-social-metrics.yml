@@ -13,7 +13,6 @@ on:
 permissions:
   contents: write # Minimal required permission to commit changes
   pull-requests: write # Required to create PRs
-  actions: write # Required for the "Trigger CI Checks" step to dispatch the CI workflow
 
 jobs:
   update:
@@ -53,7 +52,12 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v8
         with:
-          commit-message: "chore: update social metrics [skip ci]"
+          # A PAT (not GITHUB_TOKEN) is required so the resulting PR triggers the
+          # `pull_request` CI run. PRs opened with GITHUB_TOKEN do not trigger
+          # workflows, which would leave the auto-merge permanently blocked by
+          # required status checks.
+          token: ${{ secrets.METRICS_PAT }}
+          commit-message: "chore: update social metrics"
           title: "chore: update social metrics"
           body: "Automated social metrics update."
           branch: "chore/update-social-metrics"
@@ -63,10 +67,5 @@ jobs:
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
         run: gh pr merge --squash --auto "${{ steps.cpr.outputs.pull-request-number }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Trigger CI Checks
-        if: steps.cpr.outputs.pull-request-operation == 'created'
-        run: gh workflow run CI --ref chore/update-social-metrics
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
