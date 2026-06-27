@@ -37,7 +37,7 @@ function updateUI(data) {
   let totalFollowers = 0;
 
   // Networks to include in the total count
-  const networks = ["tiktok", "youtube", "instagram", "bluesky", "facebook", "x"];
+  const networks = ["tiktok", "youtube", "instagram", "bluesky", "facebook"];
 
   networks.forEach((network) => {
     const metric = data[network];

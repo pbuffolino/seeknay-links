@@ -15,12 +15,6 @@
     "display": "11,300 followers",
     "lastSuccessAt": "2026-06-27T21:54:16.398Z"
   },
-  "x": {
-    "count": null,
-    "display": "",
-    "lastSuccessAt": null,
-    "lastError": "Update failed"
-  },
   "bluesky": {
     "count": 641,
     "display": "641 followers",
