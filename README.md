@@ -99,7 +99,7 @@ The site will be live at `https://yourusername.github.io/repo-name/`.
 
 A GitHub Actions workflow runs daily at 14:17 UTC, fetches counts from each platform's API, and commits the results to `assets/social-metrics.json`. The page reads that file on load.
 
-**Supported platforms:** TikTok, YouTube, Instagram, X (Twitter), Bluesky, Facebook
+**Supported platforms:** TikTok, YouTube, Instagram, Bluesky, Facebook
 
 ### Required secrets
 
@@ -114,8 +114,6 @@ Add these to **Repository Settings → Secrets and variables → Actions**:
 | `TIKTOK_SESSION_ID`    | TikTok    | `sessionid` cookie from browser |
 | `TIKTOK_MS_TOKEN`      | TikTok    | `msToken` cookie from browser   |
 | `TIKTOK_USERNAME`      | TikTok    | Your TikTok username            |
-| `X_BEARER_TOKEN`       | X         | X (Twitter) API v2 Bearer Token |
-| `X_USERNAME`           | X         | Your X username (without `@`)   |
 | `BSKY_HANDLE`          | Bluesky   | Your Bluesky handle             |
 | `FB_PAGE_ACCESS_TOKEN` | Facebook  | Facebook Page access token      |
 | `FB_PAGE_ID`           | Facebook  | Your Facebook Page ID           |

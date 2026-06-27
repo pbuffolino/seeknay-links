@@ -197,42 +197,6 @@ async function getTikTokFollowers() {
 }
 
 /**
- * Fetch X/Twitter follower count
- * Requires: X_BEARER_TOKEN, X_USERNAME
- */
-async function getXFollowers() {
-  const bearer = process.env.X_BEARER_TOKEN;
-  const username = process.env.X_USERNAME;
-
-  if (!bearer || !username) {
-    throw new Error("Missing X_BEARER_TOKEN or X_USERNAME");
-  }
-
-  const url = `https://api.x.com/2/users/by/username/${encodeURIComponent(
-    username
-  )}?user.fields=public_metrics`;
-
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${bearer}` },
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    // 🛡️ SECURITY: Log only the HTTP status — API error bodies may reflect request details
-    throw new Error(`X API error ${res.status}`);
-  }
-
-  const count = data?.data?.public_metrics?.followers_count;
-
-  if (count == null) {
-    throw new Error("followers_count missing");
-  }
-
-  return Number(count);
-}
-
-/**
  * Fetch Bluesky follower count
  * Requires: BSKY_HANDLE
  */
@@ -324,7 +288,6 @@ async function main() {
   next = await safeUpdate(next, "youtube", getYouTubeSubs);
   next = await safeUpdate(next, "instagram", getInstagramFollowers);
   next = await safeUpdate(next, "tiktok", getTikTokFollowers);
-  next = await safeUpdate(next, "x", getXFollowers);
   next = await safeUpdate(next, "bluesky", getBlueskyFollowers);
   next = await safeUpdate(next, "facebook", getFacebookFollowers);
 
