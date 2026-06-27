@@ -1,0 +1,4 @@
+# Default owner for everything in this repo.
+# Documents sole ownership; combined with branch protection it ensures the
+# owner is requested for review on any pull request.
+* @pbuffolino
