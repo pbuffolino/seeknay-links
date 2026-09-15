@@ -1,28 +1,28 @@
 {
-  "updatedAt": "2026-09-14T19:20:17.506Z",
+  "updatedAt": "2026-09-15T18:10:12.807Z",
   "youtube": {
     "count": 166,
     "display": "166 followers",
-    "lastSuccessAt": "2026-09-14T19:20:17.690Z"
+    "lastSuccessAt": "2026-09-15T18:10:13.032Z"
   },
   "instagram": {
-    "count": 701,
-    "display": "701 followers",
-    "lastSuccessAt": "2026-09-14T19:20:18.578Z"
+    "count": 703,
+    "display": "703 followers",
+    "lastSuccessAt": "2026-09-15T18:10:15.138Z"
   },
   "tiktok": {
     "count": 11300,
     "display": "11,300 followers",
-    "lastSuccessAt": "2026-09-14T19:20:19.013Z"
+    "lastSuccessAt": "2026-09-15T18:10:16.171Z"
   },
   "bluesky": {
     "count": 647,
     "display": "647 followers",
-    "lastSuccessAt": "2026-09-14T19:20:19.289Z"
+    "lastSuccessAt": "2026-09-15T18:10:16.542Z"
   },
   "facebook": {
     "count": 42,
     "display": "42 followers",
-    "lastSuccessAt": "2026-09-14T19:20:19.640Z"
+    "lastSuccessAt": "2026-09-15T18:10:16.848Z"
   }
 }
