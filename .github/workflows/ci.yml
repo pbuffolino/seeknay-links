@@ -29,6 +29,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # This profile redirects CI clients to a rate-limited login page. Check it manually.
       - name: Link Checker
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
@@ -37,6 +38,7 @@ jobs:
             --root-dir '${{ github.workspace }}' --index-files index.html
             --remap '^https://links\.seeknay\.com/ file://${{ github.workspace }}/'
             --exclude '(localhost|127\.0\.0\.1):' --exclude 'googletagmanager.com'
+            --exclude '^https://www\.instagram\.com/seeknay747/?$'
             './**/*.md' './**/*.html' 'assets/links.json'
 
   security-audit:

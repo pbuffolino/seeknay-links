@@ -36,7 +36,7 @@ To deploy, select `main` and `/ (root)` in repository Settings → Pages. Enable
 
 ## Metrics publication
 
-The scheduled workflow runs at 14:17 UTC. It fetches public follower totals, opens or updates one metrics PR, explicitly dispatches CI on that branch, waits for that exact commit to pass, merges through branch protection, and requests a Pages build. Only `assets/social-metrics.json` may be changed by that PR. CI jobs run in parallel.
+The scheduled workflow runs at 14:17 UTC. It fetches public follower totals, opens or updates one metrics PR, explicitly dispatches CI on that branch, waits for that exact commit to pass, merges through branch protection, and requests a Pages build. Only `assets/social-metrics.json` may be changed by that PR. CI jobs run in parallel. The Instagram profile is excluded from automated HTTP checks because it redirects CI clients to a rate-limited login page. Its URL and saved navigation are validated locally; verify the profile manually when changing it.
 
 Enable **Allow GitHub Actions to create and approve pull requests** in repository Settings → Actions → General. The workflow requests repository-scoped `contents`, `pull-requests`, `actions`, and `pages` write permissions. It uses the short-lived `GITHUB_TOKEN`; no GitHub personal access token is required. Explicit dispatch and Pages publication are needed because token-authored changes do not automatically trigger those workflows. [GitHub workflow trigger documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
 
