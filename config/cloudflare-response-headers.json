@@ -1,0 +1,14 @@
+{
+  "description": "Security headers for links site",
+  "expression": "(http.host eq \"links.seeknay.com\")",
+  "action": "rewrite",
+  "action_parameters": {
+    "headers": {
+      "content-security-policy": { "operation": "set", "value": "frame-ancestors 'none';" },
+      "x-frame-options": { "operation": "set", "value": "DENY" },
+      "x-content-type-options": { "operation": "set", "value": "nosniff" },
+      "referrer-policy": { "operation": "set", "value": "strict-origin-when-cross-origin" }
+    }
+  },
+  "enabled": true
+}

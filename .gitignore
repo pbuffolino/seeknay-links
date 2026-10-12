@@ -26,3 +26,7 @@ debug_*
 
 # Agent planning documents (local only)
 .agent/plans/
+
+# Test output
+test-results/
+playwright-report/

@@ -1,0 +1,18 @@
+name: Feature request
+description: Suggest an improvement to the links site
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the visitor or contributor need. Do not include private data or credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed improvement
+    validations:
+      required: true

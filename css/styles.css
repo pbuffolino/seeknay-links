@@ -10,6 +10,7 @@
   --card: rgba(255, 255, 255, 0.85);
   /* White - Card backgrounds */
   --accent: #4f46e5;
+  --accent-fill: #4f46e5;
   /* Indigo 600 - Primary accent color */
   --text: #0f172a;
   /* Slate 900 - Primary text */
@@ -351,7 +352,7 @@ body.dark-mode .business-link {
   position: absolute;
   top: 0;
   right: 0;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: white;
   font-size: 0.65rem;
   font-weight: 800;
@@ -692,7 +693,7 @@ body.dark-mode .action-btn {
   display: inline-block;
   margin-top: 8px;
   padding: 12px 28px;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   text-decoration: none;
   border-radius: 99px;
@@ -747,7 +748,7 @@ body.dark-mode .action-btn {
 }
 
 .consent-btn--primary {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
 }
 
@@ -762,4 +763,96 @@ body.dark-mode .action-btn {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+[hidden] {
+  display: none !important;
+}
+.metrics-status,
+.links-status {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.metrics-status {
+  margin: 12px 0;
+}
+.links-status {
+  text-align: center;
+  margin-top: 12px;
+}
+.privacy-settings {
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  padding: 12px;
+  display: block;
+  margin: auto;
+}
+.fa-solid,
+.fa-brands {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-color: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+}
+
+.fa-tiktok {
+  --icon: url("../assets/icons/tiktok.svg");
+}
+
+.fa-youtube {
+  --icon: url("../assets/icons/youtube.svg");
+}
+
+.fa-instagram {
+  --icon: url("../assets/icons/instagram.svg");
+}
+
+.fa-bluesky {
+  --icon: url("../assets/icons/bluesky.svg");
+}
+
+.fa-facebook {
+  --icon: url("../assets/icons/facebook.svg");
+}
+
+.fa-moon {
+  --icon: url("../assets/icons/moon.svg");
+}
+
+.fa-sun {
+  --icon: url("../assets/icons/sun.svg");
+}
+
+.fa-share-nodes {
+  --icon: url("../assets/icons/share-nodes.svg");
+}
+
+.fa-arrow-right {
+  --icon: url("../assets/icons/arrow-right.svg");
+}
+
+.fa-users {
+  --icon: url("../assets/icons/users.svg");
+}
+
+.fa-link {
+  --icon: url("../assets/icons/link.svg");
+}
+
+.fa-handshake {
+  --icon: url("../assets/icons/handshake.svg");
+}
+
+.fa-envelope {
+  --icon: url("../assets/icons/envelope.svg");
+}
+
+.fa-arrow-up-right-from-square {
+  --icon: url("../assets/icons/arrow-up-right-from-square.svg");
 }

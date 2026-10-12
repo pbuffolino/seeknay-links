@@ -1,100 +1,73 @@
-/**
- * LINKS LOADER
- * Fetches links from assets/links.json and renders them to the DOM.
- */
+const container = document.getElementById("links-container");
+const status = document.getElementById("links-status");
+const retry = document.getElementById("links-retry");
 
-const LINKS_URL = "assets/links.json";
-const CONTAINER_ID = "links-container";
+function validLink(link) {
+  return (
+    link &&
+    typeof link.name === "string" &&
+    link.name.length > 0 &&
+    typeof link.url === "string" &&
+    /^https?:\/\//.test(link.url) &&
+    typeof link.icon === "string" &&
+    /^(fa-brands|fa-solid) fa-[a-z-]+$/.test(link.icon) &&
+    [0, 50, 100, 150, 200, 250].includes(link.delay) &&
+    (link.networkId === null ||
+      ["tiktok", "youtube", "instagram", "bluesky", "facebook"].includes(link.networkId))
+  );
+}
 
 async function loadLinks() {
-  const container = document.getElementById(CONTAINER_ID);
   if (!container) return;
-
+  if (retry) retry.disabled = true;
   try {
-    const response = await fetch(LINKS_URL);
-    if (!response.ok) throw new Error("Failed to load links");
+    const response = await fetch("assets/links.json", { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw new Error("Links unavailable");
     const links = await response.json();
-
-    renderLinks(links, container);
-  } catch (error) {
-    console.error("Error loading links:", error);
-    // Fallback or error UI could go here
-    container.innerHTML = `<p style="text-align:center; color: var(--muted);">Unable to load links.</p>`;
+    if (!Array.isArray(links) || !links.length || !links.every(validLink)) {
+      throw new Error("Invalid links data");
+    }
+    const fragment = document.createDocumentFragment();
+    for (const link of links) {
+      const anchor = document.createElement("a");
+      anchor.className = `link-button delay-${link.delay}`;
+      anchor.href = link.url;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      anchor.dataset.linkName = link.name;
+      anchor.dataset.linkUrl = link.url;
+      const main = document.createElement("span");
+      main.className = "link-main";
+      const icon = document.createElement("i");
+      icon.className = `${link.icon} link-icon`;
+      icon.setAttribute("aria-hidden", "true");
+      const info = document.createElement("span");
+      info.className = "link-info-group";
+      const label = document.createElement("span");
+      label.className = "link-label";
+      label.textContent = link.name;
+      info.append(label);
+      if (link.networkId) {
+        const count = document.createElement("span");
+        count.className = "link-followers";
+        count.dataset.network = link.networkId;
+        info.append(count);
+      }
+      const arrow = document.createElement("i");
+      arrow.className = "fa-solid fa-arrow-up-right-from-square link-arrow";
+      arrow.setAttribute("aria-hidden", "true");
+      main.append(icon, info);
+      anchor.append(main, arrow);
+      fragment.append(anchor);
+    }
+    container.replaceChildren(fragment);
+    if (status) status.hidden = true;
+    window.updateSocialCounts?.();
+  } catch {
+    if (status) status.hidden = false;
+  } finally {
+    if (retry) retry.disabled = false;
   }
 }
-
-function renderLinks(links, container) {
-  const fragment = document.createDocumentFragment();
-
-  links.forEach((link) => {
-    // L3: Validate URL to prevent javascript: injection from a compromised links.json
-    const url = link.url;
-    if (typeof url !== "string" || (!url.startsWith("https://") && !url.startsWith("http://"))) {
-      return;
-    }
-
-    const a = document.createElement("a");
-    a.className = "link-button";
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-
-    // Accessibility & Tracking Data
-    a.dataset.linkName = link.name;
-    a.dataset.linkUrl = link.url;
-
-    // Animation Delay
-    // We set the style directly for the animation delay variable
-    a.style.setProperty("--delay", `${link.delay}ms`);
-
-    // Inner HTML Structure
-    const linkMain = document.createElement("span");
-    linkMain.className = "link-main";
-
-    const icon = document.createElement("i");
-    icon.className = `${link.icon} link-icon`;
-    icon.setAttribute("aria-hidden", "true");
-
-    const infoGroup = document.createElement("span");
-    infoGroup.className = "link-info-group";
-
-    const label = document.createElement("span");
-    label.className = "link-label";
-    label.textContent = link.name; // Safe XSS prevention
-
-    infoGroup.appendChild(label);
-
-    if (link.networkId) {
-      const networkSpan = document.createElement("span");
-      networkSpan.className = "link-followers";
-      networkSpan.dataset.network = link.networkId;
-      infoGroup.appendChild(networkSpan);
-    }
-
-    linkMain.appendChild(icon);
-    linkMain.appendChild(infoGroup);
-
-    const arrow = document.createElement("i");
-    arrow.className = "fa-solid fa-arrow-up-right-from-square link-arrow";
-    arrow.setAttribute("aria-hidden", "true");
-
-    a.appendChild(linkMain);
-    a.appendChild(arrow);
-
-    fragment.appendChild(a);
-  });
-
-  container.appendChild(fragment);
-
-  // Trigger followers update if the followers script is loaded
-  if (window.updateSocialCounts) {
-    window.updateSocialCounts();
-  }
-}
-
-// Initialize on DOM Ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", loadLinks);
-} else {
-  loadLinks();
-}
+retry?.addEventListener("click", loadLinks);
+loadLinks();

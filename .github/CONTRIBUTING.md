@@ -7,10 +7,11 @@ First off, thanks for taking the time to contribute!
 1. **Fork the repository**
 2. **Create a new branch** (`git checkout -b feature/amazing-feature`)
 3. **Make your changes**
-4. **Run tests** (`npm test`) - This runs linting and formatting checks
+4. **Run tests** (`npm test`) - This runs lint, formatting, unit tests, and site validation
 5. **Commit your changes** (`git commit -m 'feat: Add amazing feature'`)
-6. **Push to the branch** (`git push origin feature/amazing-feature`)
-7. **Open a Pull Request**
+6. **Run browser checks** (`npx playwright install chromium && npm run test:browser`)
+7. **Push to the branch** (`git push origin feature/amazing-feature`)
+8. **Open a Pull Request**
 
 ## Coding Standards
 
@@ -25,3 +26,5 @@ Please include:
 - A clear description of the issue
 - Steps to reproduce
 - Browser and OS version
+
+Changes to `assets/links.json` require `npm run sync-links`. Review the staged diff for private data before committing. Keep commit messages and PR descriptions focused on the public implementation.

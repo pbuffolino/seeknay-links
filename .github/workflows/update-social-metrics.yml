@@ -1,7 +1,3 @@
-# ⚠️ SECURITY: This workflow uses ${{ secrets.* }} to pass encrypted GitHub Secrets
-# as environment variables. Secrets are NEVER exposed in logs or commits.
-# Safe to commit publicly.
-
 name: Update Social Metrics
 
 on:
@@ -11,13 +7,19 @@ on:
   workflow_dispatch: # Allow manual trigger
 
 permissions:
-  contents: write # Minimal required permission to commit changes
-  pull-requests: write # Required to create PRs
+  contents: write
+  pull-requests: write
+  actions: write
+  pages: write
+
+concurrency:
+  group: social-metrics-publication
+  cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -32,8 +34,6 @@ jobs:
       # Run the Node.js script to fetch new data
       - name: Fetch and persist social metrics
         env:
-          # 🔐 The following variables are mapped from GitHub Secrets
-          # To update these, go to Settings -> Secrets and variables -> Actions
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
           YT_CHANNEL_ID: ${{ secrets.YT_CHANNEL_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
@@ -50,11 +50,8 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
-          # A PAT (not GITHUB_TOKEN) is required so the resulting PR triggers the
-          # `pull_request` CI run. PRs opened with GITHUB_TOKEN do not trigger
-          # workflows, which would leave the auto-merge permanently blocked by
-          # required status checks.
-          token: ${{ secrets.METRICS_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: assets/social-metrics.json
           commit-message: "chore: update social metrics"
           title: "chore: update social metrics"
           body: "Automated social metrics update."
@@ -62,8 +59,10 @@ jobs:
           base: "main"
           delete-branch: true
 
-      - name: Enable Pull Request Automerge
-        if: steps.cpr.outputs.pull-request-operation == 'created'
-        run: gh pr merge --squash --auto "${{ steps.cpr.outputs.pull-request-number }}"
+      # GITHUB_TOKEN changes do not trigger CI or legacy Pages builds automatically.
+      - name: Verify and publish metrics PR
+        if: steps.cpr.outputs.pull-request-number != ''
+        run: node scripts/publish-metrics.mjs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          METRICS_PR: ${{ steps.cpr.outputs.pull-request-number }}

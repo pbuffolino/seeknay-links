@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0f172a"/><stop offset="1" stop-color="#25235a"/></linearGradient>
+    <clipPath id="avatar"><circle cx="975" cy="295" r="108"/></clipPath>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1100" cy="40" r="300" fill="#4f46e5" opacity=".18"/>
+  <rect x="72" y="88" width="130" height="36" rx="18" fill="#818cf8"/>
+  <text x="137" y="112" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#0f172a">ALL MY LINKS</text>
+  <text x="70" y="277" font-family="Arial,sans-serif" font-size="110" font-weight="bold" letter-spacing="-4" fill="#f8fafc">seeknay</text>
+  <text x="76" y="348" font-family="Arial,sans-serif" font-size="34" fill="#c7d2fe">Identity. Security. Tech.</text>
+  <text x="76" y="416" font-family="Arial,sans-serif" font-size="24" fill="#cbd5e1">Ideas, videos, and conversations.</text>
+  <circle cx="975" cy="295" r="116" fill="#818cf8"/>
+  <image href="avatar.jpg" x="867" y="187" width="216" height="216" clip-path="url(#avatar)"/>
+  <path d="M76 501H1124" stroke="#818cf8" stroke-opacity=".4"/>
+  <text x="76" y="555" font-family="Arial,sans-serif" font-size="26" font-weight="bold" fill="#f8fafc">links.seeknay.com</text>
+  <text x="1124" y="555" text-anchor="end" font-family="Arial,sans-serif" font-size="20" fill="#c7d2fe">Workforce Identity Architect</text>
+</svg>
