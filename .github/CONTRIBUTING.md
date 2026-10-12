@@ -17,6 +17,7 @@ First off, thanks for taking the time to contribute!
 
 - Every UX change requires explicit approval from the repository owner before implementation or publication. This includes changes to visible copy, layout, styling, controls, and interaction behavior. General repair instructions do not authorize UX changes. Present the proposed change and wait for approval.
 - Keep the site clean, simple, fast, and mobile first. Favor essential content and compact layouts.
+- Always spell the brand `seeknay` in lowercase, including copy, metadata, shared text, artwork, and profile links.
 - We use **ESLint** and **Prettier** to maintain code quality.
 - Run `npm run format` to automatically format your code before committing.
 - Ensure all links are valid.
@@ -30,3 +31,5 @@ Please include:
 - Browser and OS version
 
 Changes to `assets/links.json` require `npm run sync-links`. Review the staged diff for private data before committing. Keep commit messages and PR descriptions focused on the public implementation.
+
+After merging a PR, remove its completed feature branch and clean worktree. For squash merges, verify that the local branch tip matches the merged PR head and that the PR merge commit is in `main`. Preserve uncommitted work and private handoff notes before cleanup. Keep active and automated branches.

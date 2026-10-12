@@ -1,7 +1,16 @@
 import fs from "node:fs/promises";
 import { createHash } from "node:crypto";
 
-const paths = ["css/styles.css", "js/ui.js", "js/analytics.js", "js/followers.js", "js/links.js"];
+const paths = [
+  "css/styles.css",
+  "js/ui.js",
+  "js/analytics.js",
+  "js/followers.js",
+  "js/links.js",
+  "favicon.ico",
+  "assets/favicon-32.png",
+  "assets/favicon.svg",
+];
 for (const filename of ["index.html", "404.html"]) {
   let source = await fs.readFile(filename, "utf8");
   for (const asset of paths) {

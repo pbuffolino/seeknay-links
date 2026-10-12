@@ -49,6 +49,19 @@ for (const filename of ["index.html", "404.html"]) {
 }
 const canonical = html.match(/<link rel="canonical" href="([^"]+)"/)[1];
 const notFound = await fs.readFile("404.html", "utf8");
+for (const filename of [
+  "index.html",
+  "404.html",
+  "assets/links.json",
+  "assets/og.svg",
+  "js/ui.js",
+]) {
+  const source = await fs.readFile(filename, "utf8");
+  assert(
+    [...source.matchAll(/seeknay/gi)].every((match) => match[0] === "seeknay"),
+    `Brand spelling must be lowercase in ${filename}`
+  );
+}
 assert(!/http-equiv="refresh"/.test(notFound), "404 must not auto-redirect");
 assert(notFound.includes(new URL("css/styles.css", canonical).href));
 assert(notFound.includes(new URL("assets/favicon.svg", canonical).href));
@@ -65,11 +78,14 @@ for (const asset of [
   "js/analytics.js",
   "js/followers.js",
   "js/links.js",
+  "favicon.ico",
+  "assets/favicon-32.png",
+  "assets/favicon.svg",
 ]) {
   const hash = createHash("sha256")
     .update(await fs.readFile(asset))
     .digest("hex")
     .slice(0, 12);
   assert(html.includes(`${asset}?v=${hash}`), `Run npm run version-assets after changing ${asset}`);
-  if (asset.startsWith("css/")) assert(notFound.includes(`${asset}?v=${hash}`));
+  if (!asset.startsWith("js/")) assert(notFound.includes(`${asset}?v=${hash}`));
 }
