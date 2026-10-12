@@ -8,6 +8,7 @@ const types = {
   ".js": "text/javascript",
   ".json": "application/json",
   ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
   ".jpg": "image/jpeg",
   ".png": "image/png",
 };
@@ -19,7 +20,7 @@ http
       if (!filename.startsWith(root + path.sep) || /(?:^|\/)\./.test(pathname))
         throw new Error("Invalid path");
       const allowed =
-        /^(?:\/index.html|\/404.html|\/css\/[\w.-]+|\/js\/[\w.-]+|\/assets\/(?:icons\/)?[\w.-]+)$/;
+        /^(?:\/index.html|\/404.html|\/favicon.ico|\/css\/[\w.-]+|\/js\/[\w.-]+|\/assets\/(?:icons\/)?[\w.-]+)$/;
       if (!allowed.test(pathname === "/" ? "/index.html" : pathname)) throw new Error("Not public");
       const data = await fs.readFile(filename);
       response.writeHead(200, {
