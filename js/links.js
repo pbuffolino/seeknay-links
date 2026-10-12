@@ -21,7 +21,10 @@ async function loadLinks() {
   if (!container) return;
   if (retry) retry.disabled = true;
   try {
-    const response = await fetch("assets/links.json", { signal: AbortSignal.timeout(10000) });
+    const response = await fetch("assets/links.json", {
+      cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+    });
     if (!response.ok) throw new Error("Links unavailable");
     const links = await response.json();
     if (!Array.isArray(links) || !links.length || !links.every(validLink)) {

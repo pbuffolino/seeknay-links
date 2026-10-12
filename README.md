@@ -16,7 +16,7 @@ npm run serve         # http://127.0.0.1:4173
 npm test              # lint, formatting, unit tests, and site validation
 npx playwright install chromium
 npm run test:browser  # accessibility and browser regression checks
-npm run format
+npm run format        # also refreshes content-based CSS/JS asset versions
 ```
 
 Opening the HTML as a local file shows saved navigation, but dynamic metrics and link updates require HTTP.
@@ -38,7 +38,7 @@ To deploy, select `main` and `/ (root)` in repository Settings → Pages. Enable
 
 The scheduled workflow runs at 14:17 UTC. It fetches public follower totals, opens or updates one metrics PR, explicitly dispatches CI on that branch, waits for that exact commit to pass, merges through branch protection, and requests a Pages build. Only `assets/social-metrics.json` may be changed by that PR. CI jobs run in parallel. The Instagram profile is excluded from automated HTTP checks because it redirects CI clients to a rate-limited login page. Its URL and saved navigation are validated locally; verify the profile manually when changing it.
 
-Enable **Allow GitHub Actions to create and approve pull requests** in repository Settings → Actions → General. The workflow requests repository-scoped `contents`, `pull-requests`, `actions`, and `pages` write permissions. It uses the short-lived `GITHUB_TOKEN`; no GitHub personal access token is required. Explicit dispatch and Pages publication are needed because token-authored changes do not automatically trigger those workflows. [GitHub workflow trigger documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+Enable **Allow GitHub Actions to create and approve pull requests** in repository Settings → Actions → General. The workflow requests repository-scoped `contents`, `pull-requests`, `actions`, and `pages` write permissions. It uses the short-lived `GITHUB_TOKEN`; no GitHub personal access token is required. Metrics-only PRs are excluded from the redundant PR event because GitHub places token-authored PR runs in an approval-required state. The publisher explicitly dispatches CI on the metrics branch instead. Token-authored merges also need an explicit legacy Pages build request. [GitHub workflow trigger documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
 
 Configure the relevant repository Actions secrets:
 
@@ -55,6 +55,8 @@ Invalid counts and individual API failures preserve the last successful count an
 Do not manually edit the auto-managed metrics file. To add a platform, update the link data, fetcher, supported-network lists, workflow secrets, and regression tests.
 
 ## Security and edge configuration
+
+CSS and JavaScript references include content hashes so cached files from an older release cannot mix with new HTML. Run `npm run format` or `npm run version-assets` after changing a runtime asset. JSON fetches bypass the browser cache.
 
 The HTML CSP restricts resource loading and forbids inline executable scripts, inline styles, and event handlers. Analytics destinations follow [Google's CSP guidance](https://developers.google.com/tag-platform/security/guides/csp). Local SVG icons avoid third-party font requests.
 

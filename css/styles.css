@@ -856,3 +856,12 @@ body.dark-mode .action-btn {
 .fa-arrow-up-right-from-square {
   --icon: url("../assets/icons/arrow-up-right-from-square.svg");
 }
+
+.stat-platform {
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+.stats-breakdown {
+  justify-content: space-between;
+  gap: clamp(4px, 1vw, 12px);
+}

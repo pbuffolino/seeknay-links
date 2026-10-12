@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 
 const links = JSON.parse(await fs.readFile("assets/links.json", "utf8"));
 const networks = ["tiktok", "youtube", "instagram", "bluesky", "facebook"];
@@ -57,3 +58,18 @@ assert.equal(image.readUInt32BE(16), 1200);
 assert.equal(image.readUInt32BE(20), 630);
 assert(image.length > 10000, "Social preview must contain real artwork");
 console.log("Site data, saved navigation, CSP markup, 404 assets, and social preview validated");
+
+for (const asset of [
+  "css/styles.css",
+  "js/ui.js",
+  "js/analytics.js",
+  "js/followers.js",
+  "js/links.js",
+]) {
+  const hash = createHash("sha256")
+    .update(await fs.readFile(asset))
+    .digest("hex")
+    .slice(0, 12);
+  assert(html.includes(`${asset}?v=${hash}`), `Run npm run version-assets after changing ${asset}`);
+  if (asset.startsWith("css/")) assert(notFound.includes(`${asset}?v=${hash}`));
+}
