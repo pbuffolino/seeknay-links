@@ -7,12 +7,13 @@
     "update-metrics": "node scripts/update-social-metrics.mjs",
     "test": "npm run lint && npm run test:unit && npm run validate",
     "lint": "eslint . && prettier --check .",
-    "format": "prettier --write .",
+    "format": "prettier --write . && npm run version-assets",
     "test:unit": "node --test tests/*.test.mjs",
     "test:browser": "playwright test",
     "validate": "node scripts/validate-site.mjs",
-    "sync-links": "node scripts/sync-links.mjs && prettier --write index.html 404.html",
-    "serve": "node scripts/serve.mjs"
+    "sync-links": "node scripts/sync-links.mjs && npm run version-assets",
+    "serve": "node scripts/serve.mjs",
+    "version-assets": "node scripts/version-assets.mjs && prettier --write index.html 404.html"
   },
   "author": "seeknay",
   "license": "MIT",

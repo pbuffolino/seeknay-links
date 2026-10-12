@@ -96,7 +96,7 @@ test("no JavaScript keeps all navigation and hides unavailable dynamic controls"
 }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:4173/");
+  await page.goto("http://127.0.0.1:4175/");
   await expect(page.locator("#links-container a")).toHaveCount(links.length);
   await expect(page.locator(".stats-card")).toBeHidden();
   await expect(page.locator("#privacy-settings")).toBeHidden();
@@ -107,7 +107,7 @@ test("nested 404 loads its assets and stays on the missing URL", async ({ page }
   await page.route("https://links.seeknay.com/**", async (route) => {
     const url = new URL(route.request().url());
     assets.push(url.pathname);
-    const response = await page.request.get("http://127.0.0.1:4173" + url.pathname);
+    const response = await page.request.get("http://127.0.0.1:4175" + url.pathname);
     await route.fulfill({ response });
   });
   const response = await page.goto("https://links.seeknay.com/missing/nested/path");
@@ -134,7 +134,7 @@ test("mobile layout fits and clipboard sharing gives feedback", async ({ page, c
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("button", { name: "Share Profile" }).click();
   await expect(page.locator("#ui-toast")).toHaveText("Link copied to clipboard!");
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("http://127.0.0.1:4173/");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("http://127.0.0.1:4175/");
 });
 
 test("saved acceptance loads analytics once and revocation survives reload", async ({ page }) => {
@@ -155,4 +155,22 @@ test("saved acceptance loads analytics once and revocation survives reload", asy
   await page.reload();
   await expect(page.locator('script[src*="googletagmanager"]')).toHaveCount(0);
   await expect(page.locator("#cookie-consent-banner")).toBeHidden();
+});
+
+test("HTML requests versioned assets even when unversioned copies are stale", async ({ page }) => {
+  let staleRequests = 0;
+  await page.route(/\/(?:js\/[\w.-]+\.js|css\/styles\.css)(?:\?|$)/, (route) => {
+    if (!new URL(route.request().url()).searchParams.has("v")) {
+      staleRequests++;
+      return route.fulfill({
+        contentType: "text/javascript",
+        body: "throw new Error('stale asset')",
+      });
+    }
+    return route.continue();
+  });
+  await page.goto("/");
+  await expect(page.locator("#links-container a")).toHaveCount(links.length);
+  await expect(page.getByRole("button", { name: "Privacy settings" })).toBeVisible();
+  expect(staleRequests).toBe(0);
 });

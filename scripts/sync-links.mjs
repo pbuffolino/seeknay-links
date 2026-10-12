@@ -39,6 +39,9 @@ await fs.writeFile(
   "404.html",
   notFound
     .replace(/href="[^"]+assets\/favicon.svg"/, `href="${new URL("assets/favicon.svg", base)}"`)
-    .replace(/href="[^"]+css\/styles.css"/, `href="${new URL("css/styles.css", base)}"`)
+    .replace(
+      /href="[^"]+css\/styles.css(?:\?v=[a-f0-9]+)?"/,
+      `href="${new URL("css/styles.css", base)}"`
+    )
     .replace(/<a href="[^"]+">/, `<a href="${base}">`)
 );

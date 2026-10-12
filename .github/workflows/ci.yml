@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+    # The publisher explicitly dispatches CI for metrics-only PRs.
+    paths-ignore: ["assets/social-metrics.json"]
   workflow_dispatch:
 
 permissions:

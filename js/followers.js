@@ -10,6 +10,7 @@ window.updateSocialCounts = async () => {
   try {
     if (!metricsData) {
       metricsRequest ||= fetch("assets/social-metrics.json", {
+        cache: "no-store",
         signal: AbortSignal.timeout(10000),
       }).then((response) => {
         if (!response.ok) throw new Error("Metrics unavailable");
@@ -40,14 +41,12 @@ function updateUI(data) {
     const date = Date.parse(metric?.lastSuccessAt);
     if (valid && Number.isFinite(date)) timestamps.push(date);
     else incomplete = true;
-    const label = `${network === "youtube" ? "YouTube" : network === "tiktok" ? "TikTok" : network[0].toUpperCase() + network.slice(1)}: ${valid ? full.format(metric.count) : "unavailable"} ${noun}`;
     document.querySelectorAll(`[data-network="${network}"]`).forEach((element) => {
       element.textContent = valid
         ? element.classList.contains("stat-mini-count")
           ? compact.format(metric.count)
           : `${full.format(metric.count)} ${noun}`
         : "Unavailable";
-      element.setAttribute("aria-label", label);
       if (Number.isFinite(date))
         element.title = `Last successful update: ${new Date(date).toLocaleString()}`;
     });
