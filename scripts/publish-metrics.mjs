@@ -57,7 +57,19 @@ export async function publishMetrics({
   if (run?.status !== "completed" || run.conclusion !== "success")
     throw new Error("Metrics commit CI did not succeed");
   console.log("CI passed for metrics commit; requesting protected merge");
-  await gh("pr", "merge", number, "--repo", repo, "--squash", "--match-head-commit", pr.head.sha);
+  const result = JSON.parse(
+    await gh(
+      "api",
+      "--method",
+      "PUT",
+      `repos/${repo}/pulls/${number}/merge`,
+      "-f",
+      `sha=${pr.head.sha}`,
+      "-f",
+      "merge_method=squash"
+    )
+  );
+  if (!result.merged) throw new Error("Metrics merge was rejected");
   const merged = JSON.parse(await gh("api", `repos/${repo}/pulls/${number}`));
   if (!merged.merged) throw new Error("Metrics PR was not merged");
   console.log("Merge verified; requesting Pages build");

@@ -31,6 +31,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Preserve publisher from workflow revision
+        run: cp scripts/publish-metrics.mjs "$RUNNER_TEMP/publish-metrics.mjs"
+
       # Run the Node.js script to fetch new data
       - name: Fetch and persist social metrics
         env:
@@ -59,10 +62,10 @@ jobs:
           base: "main"
           delete-branch: true
 
-      # GITHUB_TOKEN changes do not trigger CI or legacy Pages builds automatically.
+      # Explicit CI and Pages requests keep publication independent of token-triggered events.
       - name: Verify and publish metrics PR
         if: steps.cpr.outputs.pull-request-number != ''
-        run: node scripts/publish-metrics.mjs
+        run: node "$RUNNER_TEMP/publish-metrics.mjs"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           METRICS_PR: ${{ steps.cpr.outputs.pull-request-number }}
