@@ -93,7 +93,8 @@ async function shareProfile() {
       gtag("event", "share", { method: navigator.share ? "native" : "clipboard" });
     }
   } catch (err) {
-    console.warn("Share canceled or failed:", err);
+    if (err.name !== "AbortError")
+      showToast("Could not share this link. Copy the address from your browser.");
   }
 }
 
@@ -130,6 +131,8 @@ function showToast(message) {
 
 // Event Listeners
 document.addEventListener("DOMContentLoaded", () => {
+  document.querySelector(".header-actions")?.removeAttribute("hidden");
+
   // 1. Initialize Theme
   initTheme();
 

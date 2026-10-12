@@ -1,302 +1,201 @@
-// ⚠️ SECURITY: This script reads ALL credentials from environment variables only.
-// NO hardcoded API keys, tokens, or secrets. Safe to commit publicly.
-
+// Credentials stay in environment variables; never log request URLs or upstream error bodies.
 import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const OUT = "assets/social-metrics.json";
+export const NETWORKS = ["youtube", "instagram", "tiktok", "bluesky", "facebook"];
+export const validCount = (count) => Number.isSafeInteger(count) && count >= 0;
 
-/**
- * UTILITY: Format raw numbers into human-readable strings (e.g., 1200 -> "1.2k followers")
- * @param {number} count - The raw follower/subscriber count
- * @returns {string|null} - Formatted string or null if input is invalid
- */
-function formatCount(count) {
-  if (typeof count !== "number" || !Number.isFinite(count)) return null;
-  // Use exact count with comma separators (e.g., 11,234 followers)
-  const formatted = new Intl.NumberFormat("en-US").format(count);
-  return `${formatted} followers`;
+export function formatCount(count, network) {
+  if (!validCount(count)) throw new Error("Invalid follower count");
+  return `${new Intl.NumberFormat("en-US").format(count)} ${
+    network === "youtube" ? "subscribers" : "followers"
+  }`;
 }
 
-/**
- * Safely read JSON file, returning empty object if it doesn't exist
- */
-async function readJson(path) {
+export async function readJson(filename) {
   try {
-    return JSON.parse(await fs.readFile(path, "utf8"));
-  } catch {
-    return { updatedAt: null };
+    const data = JSON.parse(await fs.readFile(filename, "utf8"));
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error("Invalid existing metrics");
+    }
+    return data;
+  } catch (error) {
+    if (error.code === "ENOENT") return {};
+    throw new Error("Cannot read existing metrics; refusing to replace cached data", {
+      cause: error,
+    });
   }
 }
 
-/**
- * Write JSON file with pretty formatting
- */
-async function writeJson(path, obj) {
-  await fs.writeFile(path, JSON.stringify(obj, null, 2) + "\n", "utf8");
-}
-
-/**
- * CORE LOGIC: Safely updates a platform's metrics.
- * On success: Updates the count and display string.
- * On failure: Keeps the previous count but records the error message.
- * @param {object} existing - Current state of the JSON data
- * @param {string} key - Platform key (e.g., 'youtube', 'instagram')
- * @param {function} fetcher - Async function that returns the raw count
- * @returns {object} - Updated state object
- */
-async function safeUpdate(existing, key, fetcher) {
+export async function safeUpdate(existing, network, fetcher, now = new Date().toISOString()) {
   try {
     const count = await fetcher();
-    console.log(`✓ ${key}: ${count} (${formatCount(count)})`);
+    if (!validCount(count)) throw new Error("Invalid follower count");
     return {
       ...existing,
-      [key]: {
+      [network]: {
         count,
-        display: formatCount(count),
-        lastSuccessAt: new Date().toISOString(),
+        display: formatCount(count, network),
+        lastSuccessAt: now,
+        lastAttemptAt: now,
       },
     };
-  } catch (error) {
-    const msg = String(error?.message ?? error);
-    console.warn(`✗ ${key}: ${msg}`);
-    // Keep last known count, record error only
-    // 🛡️ SECURITY: Use generic error message to avoid information disclosure
+  } catch {
     return {
       ...existing,
-      [key]: {
-        ...(existing[key] ?? {}),
+      [network]: {
+        ...(existing[network] ?? {}),
+        lastAttemptAt: now,
         lastError: "Update failed",
       },
     };
   }
 }
 
-/**
- * Fetch YouTube subscriber count
- * Requires: YT_API_KEY, YT_CHANNEL_ID
- */
-async function getYouTubeSubs() {
-  const apiKey = process.env.YT_API_KEY;
-  const channelId = process.env.YT_CHANNEL_ID;
-
-  if (!apiKey || !channelId) {
-    throw new Error("Missing YT_API_KEY or YT_CHANNEL_ID");
+export function countFrom(value) {
+  if (typeof value !== "number" && !(typeof value === "string" && /^\d+$/.test(value))) {
+    throw new Error("Missing or invalid follower count");
   }
-
-  const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${encodeURIComponent(
-    channelId
-  )}&key=${encodeURIComponent(apiKey)}`;
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    // 🛡️ SECURITY: Avoid logging full body text
-    throw new Error(`YouTube API error ${res.status}`);
-  }
-
-  const data = await res.json();
-  const subscriberCount = data?.items?.[0]?.statistics?.subscriberCount;
-
-  if (subscriberCount == null) {
-    throw new Error("subscriberCount missing (hidden or invalid channel ID)");
-  }
-
-  return Number(subscriberCount);
+  const count = Number(value);
+  if (!validCount(count)) throw new Error("Invalid follower count");
+  return count;
 }
 
-/**
- * Fetch Instagram follower count
- * Requires: IG_ACCESS_TOKEN, IG_USER_ID
- */
-async function getInstagramFollowers() {
-  const token = process.env.IG_ACCESS_TOKEN;
-  const igUserId = process.env.IG_USER_ID;
-
-  if (!token || !igUserId) {
-    throw new Error("Missing IG_ACCESS_TOKEN or IG_USER_ID");
-  }
-
-  const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(
-    igUserId
-  )}?fields=followers_count&access_token=${encodeURIComponent(token)}`;
-
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if (!res.ok) {
-    // 🛡️ SECURITY: Log only the HTTP status — API error bodies may reflect request details
-    throw new Error(`Instagram API error ${res.status}`);
-  }
-
-  if (data?.followers_count == null) {
-    throw new Error("followers_count missing");
-  }
-
-  return Number(data.followers_count);
-}
-
-/**
- * Fetch TikTok follower count (Session-based approach)
- * Requires: TIKTOK_SESSION_ID, TIKTOK_MS_TOKEN, TIKTOK_USERNAME
- */
-async function getTikTokFollowers() {
-  const sessionId = process.env.TIKTOK_SESSION_ID;
-  const msToken = process.env.TIKTOK_MS_TOKEN || "";
-  const username = process.env.TIKTOK_USERNAME || "seeknay747";
-
-  if (!sessionId) {
-    throw new Error("Missing TIKTOK_SESSION_ID");
-  }
-
-  const url = `https://www.tiktok.com/api/user/detail/?uniqueId=${encodeURIComponent(
-    username
-  )}&msToken=${encodeURIComponent(msToken)}`;
-
-  // Attempt 1: Internal API (Fastest)
-  const apiRes = await fetch(url, {
-    headers: {
-      Cookie: `sessionid=${sessionId}`,
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      Accept: "application/json, text/plain, */*",
-      Referer: "https://www.tiktok.com/",
-    },
-  });
-
-  if (apiRes.ok) {
-    const text = await apiRes.text();
+export function parseTikTokProfile(html, username) {
+  for (const [, body] of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+    let data;
     try {
-      const data = JSON.parse(text);
-      const count = data?.userInfo?.stats?.followerCount;
-      if (count != null) return Number(count);
-    } catch (e) {
-      console.log("⚠️ TikTok Internal API failed, falling back to scrape:", e.message);
-      // Fall through to scraping
+      data = JSON.parse(body);
+    } catch {
+      continue;
     }
-  } else {
-    console.log(`⚠️ TikTok Internal API responded with ${apiRes.status}, falling back to scrape`);
+    const info = data?.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.userInfo;
+    if (info?.user?.uniqueId?.toLowerCase() === username.toLowerCase()) {
+      return countFrom(info.stats?.followerCount);
+    }
+    const users = data?.UserModule?.users;
+    if (users) {
+      for (const [id, user] of Object.entries(users)) {
+        if (user.uniqueId?.toLowerCase() === username.toLowerCase()) {
+          return countFrom(data.UserModule.stats?.[id]?.followerCount);
+        }
+      }
+    }
   }
+  throw new Error("No matching TikTok profile statistics");
+}
 
-  // Attempt 2: Scrape Profile Page (More Reliable)
-  const pageRes = await fetch(`https://www.tiktok.com/@${username}`, {
-    headers: {
-      Cookie: `sessionid=${sessionId}`,
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+export function createFetchers({ env = process.env, fetchImpl = fetch, timeoutMs = 15000 } = {}) {
+  async function request(url, headers = {}, responseType = "json") {
+    const response = await fetchImpl(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
+    if (!response.ok) throw new Error(`Upstream HTTP ${response.status}`);
+    return responseType === "text" ? response.text() : response.json();
+  }
+  function required(...names) {
+    if (names.some((name) => !env[name])) throw new Error("Missing platform configuration");
+  }
+  function graphUrl(id, token) {
+    const version = env.META_GRAPH_VERSION || "v19.0";
+    if (!/^v\d+\.\d+$/.test(version)) throw new Error("Invalid Graph API version");
+    return `https://graph.facebook.com/${version}/${encodeURIComponent(id)}?fields=followers_count&access_token=${encodeURIComponent(token)}`;
+  }
+  return {
+    youtube: async () => {
+      required("YT_API_KEY", "YT_CHANNEL_ID");
+      const data = await request(
+        `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${encodeURIComponent(env.YT_CHANNEL_ID)}&key=${encodeURIComponent(env.YT_API_KEY)}`
+      );
+      return countFrom(data?.items?.[0]?.statistics?.subscriberCount);
     },
-  });
-
-  const html = await pageRes.text();
-
-  // Look for the "followerCount":1234 pattern in the embedded JSON
-  const match = html.match(/"followerCount":\s*(\d+)/);
-  if (match && match[1]) {
-    return Number(match[1]);
-  }
-
-  throw new Error("Could not find follower count in API or profile page HTML");
-}
-
-/**
- * Fetch Bluesky follower count
- * Requires: BSKY_HANDLE
- */
-async function getBlueskyFollowers() {
-  const handle = process.env.BSKY_HANDLE;
-
-  if (!handle) {
-    throw new Error("Missing BSKY_HANDLE");
-  }
-
-  const url = `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(
-    handle
-  )}`;
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Bluesky API error ${res.status}`);
-  }
-
-  const data = await res.json();
-  const count = data?.followersCount;
-
-  if (count == null) {
-    throw new Error("followersCount missing");
-  }
-
-  return Number(count);
-}
-
-/**
- * Fetch Facebook Page follower count
- * Requires: FB_PAGE_ACCESS_TOKEN
- * Optional: FB_PAGE_ID (defaults to seeknay's page)
- *
- * 🔒 SECURITY NOTES:
- * - Token read from env only, never from file or argument
- * - Error messages sanitized to prevent token reflection
- * - Uses HTTPS with explicit API version to prevent downgrade
- */
-async function getFacebookFollowers() {
-  const token = process.env.FB_PAGE_ACCESS_TOKEN;
-  const pageId = process.env.FB_PAGE_ID;
-
-  // 🛡️ SECURITY: Require explicit configuration, no hardcoded fallbacks
-  if (!token || !pageId) {
-    throw new Error("Missing FB_PAGE_ACCESS_TOKEN or FB_PAGE_ID");
-  }
-
-  // Use explicit API version to avoid deprecation surprises
-  const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(
-    pageId
-  )}?fields=followers_count&access_token=${encodeURIComponent(token)}`;
-
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if (!res.ok) {
-    // 🛡️ SECURITY: Log only the HTTP status — API error bodies may reflect request details
-    throw new Error(`Facebook API error ${res.status}`);
-  }
-
-  if (data?.followers_count == null) {
-    throw new Error("followers_count missing from response");
-  }
-
-  return Number(data.followers_count);
-}
-
-// =============================================================================
-// MAIN EXECUTION
-// =============================================================================
-
-async function main() {
-  console.log("🔄 Starting Social Metrics Update...");
-  console.log(`📡 Current Time: ${new Date().toISOString()}\n`);
-
-  // 1. Read existing data (to preserve counts on API failure)
-  const existing = await readJson(OUT);
-  let next = {
-    ...existing,
-    updatedAt: new Date().toISOString(),
+    instagram: async () => {
+      required("IG_ACCESS_TOKEN", "IG_USER_ID");
+      const data = await request(graphUrl(env.IG_USER_ID, env.IG_ACCESS_TOKEN));
+      return countFrom(data?.followers_count);
+    },
+    tiktok: async () => {
+      required("TIKTOK_SESSION_ID");
+      const username = env.TIKTOK_USERNAME || "seeknay747";
+      const headers = {
+        Cookie: `sessionid=${env.TIKTOK_SESSION_ID}`,
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+        Referer: "https://www.tiktok.com/",
+      };
+      try {
+        const data = await request(
+          `https://www.tiktok.com/api/user/detail/?uniqueId=${encodeURIComponent(username)}&msToken=${encodeURIComponent(env.TIKTOK_MS_TOKEN || "")}`,
+          headers
+        );
+        const info = data?.userInfo;
+        if (info?.user?.uniqueId?.toLowerCase() === username.toLowerCase()) {
+          const count = countFrom(info?.stats?.followerCount);
+          if (validCount(count)) return count;
+        }
+      } catch {
+        // All API failures use the matching profile's embedded statistics as a fallback.
+      }
+      const html = await request(
+        `https://www.tiktok.com/@${encodeURIComponent(username)}`,
+        headers,
+        "text"
+      );
+      return parseTikTokProfile(html, username);
+    },
+    bluesky: async () => {
+      required("BSKY_HANDLE");
+      const data = await request(
+        `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(env.BSKY_HANDLE)}`
+      );
+      return countFrom(data?.followersCount);
+    },
+    facebook: async () => {
+      required("FB_PAGE_ACCESS_TOKEN", "FB_PAGE_ID");
+      const data = await request(graphUrl(env.FB_PAGE_ID, env.FB_PAGE_ACCESS_TOKEN));
+      return countFrom(data?.followers_count);
+    },
   };
-
-  // 2. Sequential updates for clarity and stability
-  // To add a new platform:
-  //   a. Create a getPlatformFollowers() function
-  //   b. Add a safeUpdate() call here
-  //   c. Add the key to assets/social-metrics.json
-  next = await safeUpdate(next, "youtube", getYouTubeSubs);
-  next = await safeUpdate(next, "instagram", getInstagramFollowers);
-  next = await safeUpdate(next, "tiktok", getTikTokFollowers);
-  next = await safeUpdate(next, "bluesky", getBlueskyFollowers);
-  next = await safeUpdate(next, "facebook", getFacebookFollowers);
-
-  // 3. Write back to disk (GitHub Action will commit this file)
-  await writeJson(OUT, next);
-  console.log(`\n✅ Metrics saved to ${OUT}`);
 }
 
-main().catch((err) => {
-  console.error("❌ Critical script failure:", err);
-  process.exit(1);
-});
+export async function refreshMetrics(existing, fetchers, now = new Date().toISOString()) {
+  let data = { ...existing, lastAttemptAt: now };
+  const results = [];
+  for (const network of NETWORKS) {
+    data = await safeUpdate(data, network, fetchers[network], now);
+    const success = !data[network].lastError;
+    results.push({ network, success });
+    console.log(`${success ? "OK" : "FAILED"}: ${network}`);
+  }
+  const successes = results.filter((result) => result.success).length;
+  if (successes) data.updatedAt = now;
+  return { data, results, successes, failures: results.length - successes };
+}
+
+export async function main({ filename = OUT, fetchers = createFetchers() } = {}) {
+  const result = await refreshMetrics(await readJson(filename), fetchers);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    await fs.appendFile(
+      process.env.GITHUB_STEP_SUMMARY,
+      `## Social metrics\n\n${result.results
+        .map(
+          (entry) => `- ${entry.network}: ${entry.success ? "updated" : "failed, cached data kept"}`
+        )
+        .join("\n")}\n`
+    );
+  }
+  if (!result.successes) throw new Error("All platform updates failed; cached file left unchanged");
+  await fs.writeFile(filename, JSON.stringify(result.data, null, 2) + "\n");
+  if (result.failures) {
+    console.warn(`::warning::${result.failures} platform updates failed; cached counts preserved`);
+  }
+  console.log(`Saved ${result.successes} successful platform updates`);
+  return result;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch(() => {
+    console.error("::error::Metrics update failed. Check the platform summary and configuration.");
+    process.exitCode = 1;
+  });
+}

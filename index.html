@@ -16,25 +16,18 @@
       content="seeknay, Workforce Identity Architect, Cybersecurity, Gamer, Tech Creator, Links"
     />
 
-    <!-- Performance Optimization: Preconnect and DNS prefetch for external resources -->
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
-    <link rel="preconnect" href="https://www.googletagmanager.com" />
-    <link rel="dns-prefetch" href="https://www.google-analytics.com" />
-    <link rel="dns-prefetch" href="https://analytics.google.com" />
-
     <!-- Security: Content Security Policy (Hardened - no unsafe-inline) -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
       default-src 'self';
       script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com;
-      style-src 'self' https://cdnjs.cloudflare.com;
-      font-src 'self' https://cdnjs.cloudflare.com;
-      img-src 'self' data:;
-      connect-src 'self' https://www.google-analytics.com https://analytics.google.com;
+      style-src 'self';
+      font-src 'self';
+      img-src 'self' data: https://*.google-analytics.com https://www.googletagmanager.com;
+      connect-src 'self' https://*.google-analytics.com https://www.googletagmanager.com https://*.google.com;
       object-src 'none';
       base-uri 'self';
-      frame-ancestors 'none';
       form-action 'self';
     "
     />
@@ -48,6 +41,16 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://links.seeknay.com/" />
     <meta property="og:image" content="https://links.seeknay.com/assets/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="seeknay, Identity, Security, and Tech. All my links in one place."
+    />
+    <meta
+      name="twitter:image:alt"
+      content="seeknay, Identity, Security, and Tech. All my links in one place."
+    />
     <meta property="og:site_name" content="seeknay" />
     <meta property="og:locale" content="en_US" />
 
@@ -66,7 +69,7 @@
     <link rel="canonical" href="https://links.seeknay.com/" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/jpeg" href="assets/avatar.jpg" />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 
     <!-- JSON-LD Structured Data for SEO (tells search engines who you are) -->
     <script type="application/ld+json">
@@ -90,24 +93,10 @@
     </script>
 
     <!-- External Stylesheets -->
-    <link
-      rel="preload"
-      as="style"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
     <link rel="stylesheet" href="css/styles.css" />
     <script src="js/ui.js" defer></script>
 
     <!-- Analytics loaded conditionally after cookie consent (see js/analytics.js) -->
-    <!-- M3/ACCEPTED RISK: SRI is omitted for the GTM script because Google rotates the
-         script content frequently, making a static integrity hash impractical. -->
     <script defer src="js/analytics.js"></script>
     <script defer src="js/followers.js"></script>
     <script defer src="js/links.js"></script>
@@ -117,8 +106,8 @@
     <!-- Cookie Consent Banner (hidden until needed; shown by analytics.js) -->
     <div id="cookie-consent-banner" hidden role="region" aria-label="Cookie consent">
       <p>
-        This site uses Google Analytics to understand how visitors use it. No personal data is
-        stored beyond what GA4 collects.
+        Allow Google Analytics to collect usage data, including page views and link clicks. Decline
+        to browse without Google Analytics. You can change this choice in Privacy settings.
       </p>
       <div class="consent-actions">
         <button id="consent-decline" class="consent-btn consent-btn--secondary">Decline</button>
@@ -130,18 +119,19 @@
       <!-- Hero Section: Avatar and Bio -->
       <header class="hero">
         <!-- Header Actions (Theme & Share) -->
-        <div class="header-actions">
+        <div class="header-actions" hidden>
           <button class="action-btn" id="theme-toggle" aria-label="Toggle Dark Mode">
-            <i class="fa-solid fa-moon"></i>
+            <i class="fa-solid fa-moon" aria-hidden="true"></i>
           </button>
           <button class="action-btn" id="share-profile" aria-label="Share Profile">
-            <i class="fa-solid fa-share-nodes"></i>
+            <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
           </button>
         </div>
 
         <img
           class="avatar"
-          src="assets/avatar.jpg"
+          src="assets/avatar-96.jpg"
+          srcset="assets/avatar-96.jpg 1x, assets/avatar-192.jpg 2x"
           alt="seeknay - Workforce Identity Architect & Tech Creator"
           width="96"
           height="96"
@@ -176,7 +166,7 @@
               Management.
             </p>
           </div>
-          <i class="fa-solid fa-arrow-right featured-arrow"></i>
+          <i class="fa-solid fa-arrow-right featured-arrow" aria-hidden="true"></i>
         </a>
       </section>
 
@@ -184,31 +174,32 @@
       <section>
         <h2 class="section-title">Socials</h2>
         <!-- Community Stats Card -->
-        <div class="stats-card" aria-label="Community Statistics">
+        <div class="stats-card" hidden aria-label="Community Statistics">
           <div class="stats-header">
-            <span class="stats-label">Total Reach</span>
-            <i class="fa-solid fa-users stats-icon"></i>
+            <span class="stats-label">Combined Followers</span>
+            <i class="fa-solid fa-users stats-icon" aria-hidden="true"></i>
           </div>
           <div class="stats-number" id="total-followers">Loading...</div>
+          <p id="metrics-status" class="metrics-status" role="status"></p>
           <div class="stats-breakdown">
             <div class="stat-item">
-              <i class="fa-brands fa-tiktok"></i>
+              <i class="fa-brands fa-tiktok" aria-hidden="true"></i>
               <span data-network="tiktok" class="stat-mini-count">-</span>
             </div>
             <div class="stat-item">
-              <i class="fa-brands fa-youtube"></i>
+              <i class="fa-brands fa-youtube" aria-hidden="true"></i>
               <span data-network="youtube" class="stat-mini-count">-</span>
             </div>
             <div class="stat-item">
-              <i class="fa-brands fa-instagram"></i>
+              <i class="fa-brands fa-instagram" aria-hidden="true"></i>
               <span data-network="instagram" class="stat-mini-count">-</span>
             </div>
             <div class="stat-item">
-              <i class="fa-brands fa-bluesky"></i>
+              <i class="fa-brands fa-bluesky" aria-hidden="true"></i>
               <span data-network="bluesky" class="stat-mini-count">-</span>
             </div>
             <div class="stat-item">
-              <i class="fa-brands fa-facebook"></i>
+              <i class="fa-brands fa-facebook" aria-hidden="true"></i>
               <span data-network="facebook" class="stat-mini-count">-</span>
             </div>
           </div>
@@ -216,17 +207,108 @@
 
         <!-- Social Media Links Navigation -->
         <nav class="links" id="links-container" aria-label="Primary links">
-          <!-- Links will be loaded dynamically by js/links.js -->
-          <noscript>
-            <!-- Fallback for no-JS -->
-            <a href="https://seeknay.com" class="link-button">
-              <span class="link-main">
-                <i class="fa-solid fa-link link-icon"></i>
+          <!-- generated-links:start -->
+          <a
+            class="link-button delay-0"
+            href="https://www.tiktok.com/@seeknay747"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-link-name="TikTok"
+          >
+            <span class="link-main">
+              <i class="fa-brands fa-tiktok link-icon" aria-hidden="true"></i>
+              <span class="link-info-group">
+                <span class="link-label">TikTok</span>
+                <span class="link-followers" data-network="tiktok"></span>
+              </span>
+            </span>
+            <i class="fa-solid fa-arrow-up-right-from-square link-arrow" aria-hidden="true"></i>
+          </a>
+          <a
+            class="link-button delay-50"
+            href="https://www.youtube.com/@Seeknay747"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-link-name="YouTube"
+          >
+            <span class="link-main">
+              <i class="fa-brands fa-youtube link-icon" aria-hidden="true"></i>
+              <span class="link-info-group">
+                <span class="link-label">YouTube</span>
+                <span class="link-followers" data-network="youtube"></span>
+              </span>
+            </span>
+            <i class="fa-solid fa-arrow-up-right-from-square link-arrow" aria-hidden="true"></i>
+          </a>
+          <a
+            class="link-button delay-100"
+            href="https://www.instagram.com/seeknay747"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-link-name="Instagram"
+          >
+            <span class="link-main">
+              <i class="fa-brands fa-instagram link-icon" aria-hidden="true"></i>
+              <span class="link-info-group">
+                <span class="link-label">Instagram</span>
+                <span class="link-followers" data-network="instagram"></span>
+              </span>
+            </span>
+            <i class="fa-solid fa-arrow-up-right-from-square link-arrow" aria-hidden="true"></i>
+          </a>
+          <a
+            class="link-button delay-150"
+            href="https://bsky.app/profile/seeknay.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-link-name="Bluesky"
+          >
+            <span class="link-main">
+              <i class="fa-brands fa-bluesky link-icon" aria-hidden="true"></i>
+              <span class="link-info-group">
+                <span class="link-label">Bluesky</span>
+                <span class="link-followers" data-network="bluesky"></span>
+              </span>
+            </span>
+            <i class="fa-solid fa-arrow-up-right-from-square link-arrow" aria-hidden="true"></i>
+          </a>
+          <a
+            class="link-button delay-200"
+            href="https://www.facebook.com/seeknay747"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-link-name="Facebook"
+          >
+            <span class="link-main">
+              <i class="fa-brands fa-facebook link-icon" aria-hidden="true"></i>
+              <span class="link-info-group">
+                <span class="link-label">Facebook</span>
+                <span class="link-followers" data-network="facebook"></span>
+              </span>
+            </span>
+            <i class="fa-solid fa-arrow-up-right-from-square link-arrow" aria-hidden="true"></i>
+          </a>
+          <a
+            class="link-button delay-250"
+            href="https://seeknay.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-link-name="Website"
+          >
+            <span class="link-main">
+              <i class="fa-solid fa-link link-icon" aria-hidden="true"></i>
+              <span class="link-info-group">
                 <span class="link-label">Website</span>
               </span>
-            </a>
-          </noscript>
+            </span>
+            <i class="fa-solid fa-arrow-up-right-from-square link-arrow" aria-hidden="true"></i>
+          </a>
+          <!-- generated-links:end -->
         </nav>
+        <div id="links-status" class="links-status" hidden>
+          <p role="status">Showing saved links. The latest links could not be loaded.</p>
+          <button id="links-retry" class="consent-btn consent-btn--secondary">Retry</button>
+        </div>
       </section>
 
       <!-- Business / Collaborate Section -->
@@ -239,13 +321,13 @@
             data-link-name="Collaborate - Email"
           >
             <span class="link-main">
-              <i class="fa-solid fa-handshake link-icon"></i>
+              <i class="fa-solid fa-handshake link-icon" aria-hidden="true"></i>
               <span class="link-info-group">
                 <span class="link-label">Work With Me</span>
                 <span class="link-followers contact-subtitle">contact@seeknay.com</span>
               </span>
             </span>
-            <i class="fa-solid fa-envelope link-arrow"></i>
+            <i class="fa-solid fa-envelope link-arrow" aria-hidden="true"></i>
           </a>
         </div>
       </section>
@@ -259,6 +341,7 @@
           class="footer-link"
           >seeknay</a
         >
+        <button id="privacy-settings" class="privacy-settings" hidden>Privacy settings</button>
       </footer>
     </main>
   </body>

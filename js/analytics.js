@@ -1,74 +1,88 @@
-/**
- * ANALYTICS MODULE
- * Initializes Google Analytics 4 (GA4) conditionally based on user cookie consent.
- * Consent state is persisted in localStorage under the key 'analytics_consent'.
- * Values: 'granted' | 'denied' | absent (no decision yet — show banner)
- *
- * H1 FIX: GA4 is never loaded without explicit user consent.
- */
-
 const GA_ID = "G-C9JSC7H6WW";
 const CONSENT_KEY = "analytics_consent";
+let consent = null;
+let loaded = false;
+
+function saveConsent(value) {
+  consent = value;
+  try {
+    localStorage.setItem(CONSENT_KEY, value);
+  } catch {
+    // This page's choice still applies when persistent storage is unavailable.
+  }
+}
 
 function loadGA() {
+  window[`ga-disable-${GA_ID}`] = false;
+  if (loaded || !GA_ID) return;
+  loaded = true;
   window.dataLayer = window.dataLayer || [];
   window.gtag = function () {
-    window.dataLayer.push(arguments);
+    if (consent === "granted") window.dataLayer.push(arguments);
   };
-
   const script = document.createElement("script");
   script.async = true;
-  script.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
+  script.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(GA_ID);
   document.head.appendChild(script);
-
   window.gtag("js", new Date());
-  window.gtag("config", GA_ID, { anonymize_ip: true });
+  window.gtag("config", GA_ID);
+}
+
+function revokeGA() {
+  window[`ga-disable-${GA_ID}`] = true;
+  window.gtag = undefined;
+  // Clear cookies visible to this host, including cookies set on a parent domain.
+  const domains = location.hostname.split(".");
+  for (const cookie of document.cookie.split(";")) {
+    const name = cookie.trim().split("=")[0];
+    if (!/^_ga(?:_|$)/.test(name)) continue;
+    document.cookie = `${name}=; Max-Age=0; path=/`;
+    for (let i = 0; i < domains.length - 1; i++) {
+      document.cookie = `${name}=; Max-Age=0; path=/; domain=${domains.slice(i).join(".")}`;
+    }
+  }
 }
 
 function initConsent() {
-  const consent = localStorage.getItem(CONSENT_KEY);
-
-  if (consent === "granted") {
-    loadGA();
-    return;
+  if (!GA_ID) return;
+  try {
+    consent = localStorage.getItem(CONSENT_KEY);
+  } catch {
+    consent = null;
   }
-
-  if (consent === "denied") {
-    return;
-  }
-
-  // No decision yet — show the banner
   const banner = document.getElementById("cookie-consent-banner");
-  if (!banner) return;
-  banner.hidden = false;
-
-  document.getElementById("consent-accept").addEventListener("click", function () {
-    localStorage.setItem(CONSENT_KEY, "granted");
-    banner.hidden = true;
-    loadGA();
+  const accept = document.getElementById("consent-accept");
+  const decline = document.getElementById("consent-decline");
+  const settings = document.getElementById("privacy-settings");
+  if (!banner || !accept || !decline || !settings) return;
+  if (consent === "granted") loadGA();
+  banner.hidden = consent === "granted" || consent === "denied";
+  settings.hidden = false;
+  settings.addEventListener("click", () => {
+    banner.hidden = false;
+    decline.focus();
   });
-
-  document.getElementById("consent-decline").addEventListener("click", function () {
-    localStorage.setItem(CONSENT_KEY, "denied");
+  accept.addEventListener("click", () => {
+    saveConsent("granted");
+    banner.hidden = true;
+    // Reload after revocation so an existing GA instance cannot resume independently.
+    if (loaded) location.reload();
+    else loadGA();
+  });
+  decline.addEventListener("click", () => {
+    saveConsent("denied");
+    revokeGA();
     banner.hidden = true;
   });
 }
 
-// Link click tracking — only fires if gtag is available (i.e., consent was granted)
-document.addEventListener("click", function (event) {
+document.addEventListener("click", (event) => {
   const anchor = event.target.closest("a[data-link-name]");
-  if (!anchor) return;
-
-  const href = anchor.getAttribute("href");
-  if (!href) return;
-
-  if (typeof window.gtag !== "function") return;
-
+  if (!anchor || consent !== "granted" || typeof window.gtag !== "function") return;
   window.gtag("event", "link_click", {
     link_name: anchor.dataset.linkName || anchor.textContent.trim(),
-    link_url: anchor.dataset.linkUrl || href,
+    link_url: anchor.href,
     transport: "beacon",
   });
 });
-
-document.addEventListener("DOMContentLoaded", initConsent);
+initConsent();
