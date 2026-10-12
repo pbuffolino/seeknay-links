@@ -124,6 +124,7 @@ test("failed metrics show an explicit unavailable state", async ({ page }) => {
   await page.route("**/assets/social-metrics.json", (route) => route.fulfill({ status: 503 }));
   await page.goto("/");
   await expect(page.locator("#total-followers")).toHaveText("Unavailable");
+  await expect(page.locator("#metrics-status")).toBeVisible();
   await expect(page.locator("#metrics-status")).toContainText("temporarily unavailable");
 });
 test("mobile layout fits and clipboard sharing gives feedback", async ({ page, context }) => {

@@ -23,7 +23,10 @@ window.updateSocialCounts = async () => {
     const total = document.getElementById("total-followers");
     if (total) total.textContent = "Unavailable";
     const status = document.getElementById("metrics-status");
-    if (status) status.textContent = "Counts are temporarily unavailable.";
+    if (status) {
+      status.textContent = "Counts are temporarily unavailable.";
+      status.hidden = false;
+    }
     metricsRequest = null;
   }
 };
@@ -62,10 +65,8 @@ function updateUI(data) {
       oldest === null ||
       Date.now() - oldest > 48 * 60 * 60 * 1000 ||
       networks.some((network) => data?.[network]?.lastError);
-    status.textContent =
-      oldest === null
-        ? "Cached counts; update time unavailable."
-        : `${stale ? "Cached counts. " : ""}Oldest successful update: ${new Date(oldest).toLocaleDateString()}.`;
+    status.textContent = stale ? "Cached counts." : "";
+    status.hidden = !stale;
   }
 }
 window.updateSocialCounts();
