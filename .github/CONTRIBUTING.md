@@ -15,6 +15,7 @@ First off, thanks for taking the time to contribute!
 
 ## Coding Standards
 
+- Every UX change requires explicit approval from the repository owner before implementation or publication. This includes changes to visible copy, layout, styling, controls, and interaction behavior. General repair instructions do not authorize UX changes. Present the proposed change and wait for approval.
 - We use **ESLint** and **Prettier** to maintain code quality.
 - Run `npm run format` to automatically format your code before committing.
 - Ensure all links are valid.

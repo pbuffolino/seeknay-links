@@ -65,7 +65,7 @@ function updateUI(data) {
     status.textContent =
       oldest === null
         ? "Cached counts; update time unavailable."
-        : `${stale ? "Cached counts. " : ""}Oldest successful update: ${new Date(oldest).toLocaleDateString()}. Counts may include the same people on multiple platforms.`;
+        : `${stale ? "Cached counts. " : ""}Oldest successful update: ${new Date(oldest).toLocaleDateString()}.`;
   }
 }
 window.updateSocialCounts();
