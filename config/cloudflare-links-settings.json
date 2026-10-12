@@ -1,0 +1,10 @@
+{
+  "description": "Links site analytics and origin TLS",
+  "expression": "(http.host eq \"links.seeknay.com\")",
+  "action": "set_config",
+  "action_parameters": {
+    "disable_rum": true,
+    "ssl": "full"
+  },
+  "enabled": true
+}
