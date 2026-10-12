@@ -110,23 +110,34 @@ test("platform requests have deadlines and rejected responses cannot become zero
   await assert.rejects(fetchers.bluesky());
   assert(signal instanceof AbortSignal);
 });
-test("publication matches the exact SHA, branch, event, and dispatch time", () => {
+test("publication accepts only the exact PR workflow and trusted metrics-only changes", () => {
+  const repo = "owner/repo";
+  const number = 42;
   const run = {
     head_sha: "a".repeat(40),
     head_branch: "chore/update-social-metrics",
-    event: "workflow_dispatch",
-    created_at: now,
+    event: "pull_request",
+    path: ".github/workflows/ci.yml",
+    pull_requests: [{ number }],
   };
-  assert.equal(matchingRun([run], run.head_sha, Date.parse(now)), run);
-  assert.equal(matchingRun([run], "b".repeat(40), Date.parse(now)), undefined);
-  assert.equal(matchingRun([run], run.head_sha, Date.parse(now) + 2000), undefined);
+  assert.equal(matchingRun([run], run.head_sha, number), run);
+  assert.equal(matchingRun([run], "b".repeat(40), number), undefined);
+  assert.equal(matchingRun([run], run.head_sha, number + 1), undefined);
+  assert.equal(
+    matchingRun([{ ...run, event: "workflow_dispatch" }], run.head_sha, number),
+    undefined
+  );
   const pr = {
     state: "open",
-    base: { ref: "main" },
-    head: { ref: run.head_branch, sha: run.head_sha },
+    base: { ref: "main", repo: { full_name: repo } },
+    head: { ref: run.head_branch, sha: run.head_sha, repo: { full_name: repo } },
+    user: { login: "github-actions[bot]" },
   };
-  assert(safeMetricsPR(pr, [{ filename: "assets/social-metrics.json", status: "modified" }]));
-  assert(!safeMetricsPR(pr, [{ filename: "js/analytics.js", status: "modified" }]));
+  const files = [{ filename: "assets/social-metrics.json", status: "modified" }];
+  assert(safeMetricsPR(pr, files, repo));
+  assert(!safeMetricsPR(pr, [{ filename: "js/analytics.js", status: "modified" }], repo));
+  assert(!safeMetricsPR({ ...pr, user: { login: "contributor" } }, files, repo));
+  assert(!safeMetricsPR(pr, files, "other/repo"));
 });
 
 test("TikTok transport failure falls back to the requested profile", async () => {
