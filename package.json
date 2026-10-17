@@ -13,6 +13,7 @@
     "validate": "node scripts/validate-site.mjs",
     "sync-links": "node scripts/sync-links.mjs && npm run version-assets",
     "serve": "node scripts/serve.mjs",
+    "health:live": "node scripts/live-health.mjs",
     "version-assets": "node scripts/version-assets.mjs && prettier --write index.html 404.html"
   },
   "author": "seeknay",
@@ -24,6 +25,7 @@
     "eslint": "^10.8.1",
     "eslint-plugin-html": "^8.1.4",
     "globals": "^17.9.0",
+    "parse5": "^8.0.1",
     "prettier": "^3.9.6"
   }
 }

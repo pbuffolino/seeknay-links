@@ -34,6 +34,9 @@ jobs:
       - name: Preserve publisher from workflow revision
         run: cp scripts/publish-metrics.mjs "$RUNNER_TEMP/publish-metrics.mjs"
 
+      - name: Install locked parser dependency without lifecycle scripts
+        run: npm ci --ignore-scripts
+
       # Run the Node.js script to fetch new data
       - name: Fetch and persist social metrics
         env:

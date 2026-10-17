@@ -56,6 +56,10 @@ Do not manually edit the auto-managed metrics file. To add a platform, update th
 
 ## Security and edge configuration
 
+See [security and health operations](docs/security-operations.md) for the dependency auto-merge
+policy, required protections, weekly review, and read-only live verification. Use `npm run health:live`
+from a fresh default-branch checkout to check the deployed site and origin TLS.
+
 CSS and JavaScript references include content hashes so cached files from an older release cannot mix with new HTML. Run `npm run format` or `npm run version-assets` after changing a runtime asset. JSON fetches bypass the browser cache.
 
 The HTML CSP restricts resource loading and forbids inline executable scripts, inline styles, and event handlers. Analytics destinations follow [Google's CSP guidance](https://developers.google.com/tag-platform/security/guides/csp). Local SVG icons avoid third-party font requests.

@@ -1,0 +1,57 @@
+name: Dependabot auto-merge
+
+on:
+  pull_request_target:
+    branches: ["main"]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependabot-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    if: >-
+      github.repository == 'pbuffolino/seeknay-links' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      dependencies: ${{ steps.metadata.outputs.updated-dependencies-json }}
+      update-type: ${{ steps.metadata.outputs.update-type }}
+    steps:
+      - name: Read verified Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+  merge:
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.update-type == 'version-update:semver-patch' ||
+      needs.metadata.outputs.update-type == 'version-update:semver-minor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+      pages: write
+    steps:
+      # This privileged job only runs trusted default-branch code. Never check out the PR.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - name: Verify, merge through branch protection, and publish
+        run: node scripts/merge-dependabot.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDABOT_PR: ${{ github.event.pull_request.number }}
+          DEPENDABOT_SHA: ${{ github.event.pull_request.head.sha }}
+          DEPENDABOT_METADATA: ${{ needs.metadata.outputs.dependencies }}

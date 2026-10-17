@@ -2,6 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { elements, text } from "./html.mjs";
 
 const OUT = "assets/social-metrics.json";
 export const NETWORKS = ["youtube", "instagram", "tiktok", "bluesky", "facebook"];
@@ -64,10 +65,10 @@ export function countFrom(value) {
 }
 
 export function parseTikTokProfile(html, username) {
-  for (const [, body] of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+  for (const script of elements(html).filter((node) => node.tagName === "script")) {
     let data;
     try {
-      data = JSON.parse(body);
+      data = JSON.parse(text(script));
     } catch {
       continue;
     }
