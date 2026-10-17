@@ -68,6 +68,12 @@ the legacy comment helper still requires explicit owner approval and its separat
 variable, which must remain unset.
 The reconciler never rebases or adds commits itself. A changed head always goes through fresh
 signature, metadata, scope, CI, CodeQL, and native protection checks before merging.
+When reopening creates approval-required CI or CodeQL runs, the publisher uses its existing
+`actions: write` permission to approve only the exact same-repository PR, signed eligible head,
+branch, `pull_request` event, and known CI/CodeQL workflow path. Complete dependency and native
+protection guards are repeated, and run identity is re-fetched immediately before approval.
+Approved runs remain pending until successful; `action_required` is not treated as a failed
+test. Unknown runs are never approved, and real current failures still block merging.
 [Dependabot rebase triggers](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#rebase-strategy),
 [PR labels and permissions](https://docs.github.com/en/rest/issues/labels#add-labels-to-an-issue).
 

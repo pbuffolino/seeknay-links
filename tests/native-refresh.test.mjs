@@ -160,6 +160,7 @@ function fixture() {
     event,
     addIntent,
     request,
+    approve: async () => {},
     now: () => time,
     sleep: async (ms) => {
       time += ms;
@@ -403,6 +404,21 @@ test("a nearly exhausted budget never closes a dependency PR", async () => {
   f.env.DEPENDENCY_DEADLINE = String(f.now() + 1000);
   await assert.rejects(refreshNative(f), /Insufficient maintenance budget/);
   assert.equal(f.writes.length, 0);
+});
+
+test("refresh polling approves only while the same verified head remains open", async () => {
+  const f = fixture();
+  let approvals = 0;
+  f.approve = async ({ verify, number, approvedRuns }) => {
+    const current = await verify();
+    assert.equal(current.state, "open");
+    assert.equal(current.head.sha, head);
+    assert.equal(number, 7);
+    assert(approvedRuns instanceof Set);
+    approvals++;
+  };
+  assert.equal(await refreshNative(f), next);
+  assert.equal(approvals, 1);
 });
 
 test("the workflow CLI defaults to native refresh without enabling comment requests", async () => {

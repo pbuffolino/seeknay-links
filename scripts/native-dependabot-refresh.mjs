@@ -1,4 +1,4 @@
-import { githubRequest, safeDependencyPR } from "./merge-dependabot.mjs";
+import { githubRequest, safeDependencyPR, approveDependencyRuns } from "./merge-dependabot.mjs";
 
 const repo = "pbuffolino/seeknay-links";
 const root = `repos/${repo}`;
@@ -106,6 +106,7 @@ export async function refreshNative({
   request = githubRequest,
   now = Date.now,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  approve = approveDependencyRuns,
 } = {}) {
   const number = Number(env.DEPENDABOT_PR);
   const sha = env.DEPENDABOT_SHA;
@@ -255,13 +256,15 @@ export async function refreshNative({
     }
   }
   const deadline = now() + 5 * 60 * 1000;
+  const approvedRuns = new Set();
   while (now() < deadline) {
-    await sleep(10000);
     const current = await request("api", `${root}/pulls/${number}`);
     if (current.state !== "open" || current.merged !== false)
       throw new Error("Dependency state changed during refresh");
     if (current.head?.sha !== sha && shaPattern.test(current.head?.sha || ""))
       return current.head.sha;
+    await approve({ request, verify: verified, number, approvedRuns });
+    await sleep(10000);
   }
   throw new Error(
     "Native Dependabot refresh is still pending; no additional request in this attempt"

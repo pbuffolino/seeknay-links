@@ -222,16 +222,17 @@ test("a pending publisher can merge by SHA after required checks, then refreshes
     if (endpoint.includes("/compare/")) return { merge_base_commit: { sha: comparisonBase } };
     if (endpoint.includes("/runs?"))
       return {
-        workflow_runs: [
-          {
-            head_sha: sha,
-            event: "pull_request",
-            path: ".github/workflows/ci.yml",
-            pull_requests: [{ number: 123 }],
-            status: "completed",
-            conclusion: "success",
-          },
-        ],
+        workflow_runs: ["ci.yml", "codeql.yml"].map((name, index) => ({
+          id: index + 1,
+          repository: { full_name: repo },
+          head_branch: data.pr.head.ref,
+          head_sha: sha,
+          event: "pull_request",
+          path: `.github/workflows/${name}`,
+          pull_requests: [{ number: 123 }],
+          status: "completed",
+          conclusion: "success",
+        })),
       };
     return writes.length ? { ...data.pr, merged: true, merge_commit_sha: "d".repeat(40) } : data.pr;
   };
@@ -290,16 +291,17 @@ test("a code-scanning alert or failed CI prevents every write", async () => {
     if (endpoint.includes("/alerts?")) return [{ number: 1 }];
     if (endpoint.includes("/runs?"))
       return {
-        workflow_runs: [
-          {
-            head_sha: sha,
-            event: "pull_request",
-            path: ".github/workflows/ci.yml",
-            pull_requests: [{ number: 123 }],
-            status: "completed",
-            conclusion,
-          },
-        ],
+        workflow_runs: ["ci.yml", "codeql.yml"].map((name, index) => ({
+          id: index + 1,
+          repository: { full_name: repo },
+          head_branch: data.pr.head.ref,
+          head_sha: sha,
+          event: "pull_request",
+          path: `.github/workflows/${name}`,
+          pull_requests: [{ number: 123 }],
+          status: "completed",
+          conclusion,
+        })),
       };
     return data.pr;
   };
