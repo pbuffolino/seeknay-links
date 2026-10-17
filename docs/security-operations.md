@@ -50,15 +50,39 @@ JSON comparisons, main health, and live head/base are rechecked before closure; 
 closed/unmerged/head/base state must verify. The receipt records `ALREADY APPLIED`, never a
 merge. Unknown or incomplete evidence leaves the PR for review. No branch or review is changed.
 
-Refresh uses native close/reopen with the existing `pull-requests: write` permission. Before
+Scheduled/event runs merge fresh eligible heads and defer stale ones without state churn.
+Owner-assisted manual runs use native close/reopen with the existing `pull-requests: write` permission. Before
 closing an eligible signed patch/minor PR, the reconciler adds the reserved
 `dependency-refresh-intent` label and an attempt label binding the PR number, full head SHA,
-full base SHA, and attempt number. It reopens in a `finally` path and removes only its own
+full base SHA, and attempt number. The machine publishes a short-lived data-only request
+artifact, then closes the PR. An authenticated local owner driver may reopen only that exact
+active trusted run's signed eligible machine-owned closure. The driver never closes, comments,
+merges, removes labels, or deletes branches. The machine waits at most two minutes for the
+handoff, restores open in `finally` on timeout, and removes only its own
 markers after verifying the PR is open. Existing labels, reviews, and branches are preserved.
 Subsequent sweeps prioritize interrupted refreshes, but recover a closed PR only when its
 unchanged signed head remains eligible and label/closure events authenticate GitHub Actions
 ownership. Unmarked PRs, human closures, merged PRs, and obsolete updates closed by Dependabot
 are never reopened. Incomplete or conflicting evidence requires review.
+
+Dispatch on protected main with `owner-assisted=true`, then run the driver immediately using
+the returned run ID and that dispatch's full workflow SHA:
+
+```bash
+gh workflow run dependabot-automerge.yml --ref main -f owner-assisted=true
+node scripts/dependency-owner-driver.mjs --run RUN_ID --sha WORKFLOW_SHA
+```
+
+Use existing owner `gh` authentication. The driver refuses token/host overrides and never
+retrieves credentials or changes scopes. It waits through GitHub concurrency states and
+requires exact repository, owner actor, workflow path/ID/SHA, reusable workflow SHA, run attempt,
+successful inspection job, artifact identity/digest/size/expiry, complete metadata/signature/scope,
+protected base, and unreplayed machine label/closure evidence before reopening. ZIP contents
+are bounded JSON data with exactly one expected archive path; they are never executed or
+extracted into the checkout. Earlier-attempt artifacts are skipped. Unknown current requests
+fail closed. The driver waits for backend completion; its receipt is not a substitute for
+independently verifying merges, main CI/CodeQL, Pages and live resources. Keep the local host
+available for the whole assisted run. No owner driver is needed for a fresh eligible head.
 
 Persistent label definitions and timeline evidence bound attempts to at most two per PR/base.
 An unchanged PR/head/base is never requested twice, and changed heads wait at least ten minutes

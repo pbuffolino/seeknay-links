@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { githubRequest, safeDependencyPR, safeDependencyScope } from "./merge-dependabot.mjs";
 import { ownedIntent, recoverablePRs, refreshNative } from "./native-dependabot-refresh.mjs";
 import { closeObsolete } from "./obsolete-dependabot.mjs";
+import { ownerRequest, validOwnerRequest } from "./owner-refresh-protocol.mjs";
 
 const repository = "pbuffolino/seeknay-links";
 const shaPattern = /^[a-f0-9]{40}$/;
@@ -199,10 +200,37 @@ async function main() {
     await output("sha", pr.head.sha);
     await output("number", pr.number);
     await output("count", 1);
-  } else if (mode === "refresh") {
+  } else if (mode === "refresh" || mode === "stage-refresh") {
     const obsolete = await closeObsolete();
     await output("obsolete", obsolete);
-    if (!obsolete) await refreshNative();
+    if (obsolete) return;
+    const result = await refreshNative({ phase: "stage" });
+    await output("status", result.status);
+    if (result.status === "staged") {
+      const value = ownerRequest(process.env, result.intent);
+      const directory = path.join(process.env.RUNNER_TEMP, "dependency-refresh");
+      await fs.mkdir(directory, { recursive: true });
+      await fs.writeFile(path.join(directory, "refresh-request.json"), JSON.stringify(value));
+    }
+  } else if (mode === "finish-refresh") {
+    const value = JSON.parse(
+      await fs.readFile(
+        path.join(process.env.RUNNER_TEMP, "dependency-refresh", "refresh-request.json"),
+        "utf8"
+      )
+    );
+    if (
+      !validOwnerRequest(value) ||
+      value.runId !== Number(process.env.GITHUB_RUN_ID) ||
+      value.runAttempt !== Number(process.env.GITHUB_RUN_ATTEMPT) ||
+      value.workflowSha !== process.env.GITHUB_SHA ||
+      value.number !== Number(process.env.DEPENDABOT_PR) ||
+      value.head !== process.env.DEPENDABOT_SHA
+    )
+      throw new Error("Staged refresh provenance changed");
+    await refreshNative({ phase: "finish", stagedIntent: value.intent });
+  } else if (mode === "cleanup-refresh") {
+    await refreshNative({ phase: "cleanup" });
   } else if (mode === "classify") {
     const eligible = await classify();
     await output("eligible", eligible);

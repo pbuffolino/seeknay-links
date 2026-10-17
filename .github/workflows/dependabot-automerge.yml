@@ -7,6 +7,12 @@ on:
   schedule:
     - cron: "47 * * * *"
   workflow_dispatch:
+    inputs:
+      owner-assisted:
+        description: Allow a local authenticated owner driver to reopen verified machine closures
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -111,3 +117,4 @@ jobs:
     with:
       number: ${{ matrix.number }}
       deadline: ${{ needs.recover-publication.outputs.deadline }}
+      owner-assisted: ${{ github.event_name == 'workflow_dispatch' && inputs.owner-assisted }}

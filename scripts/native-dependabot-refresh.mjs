@@ -107,6 +107,9 @@ export async function refreshNative({
   now = Date.now,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   approve = approveDependencyRuns,
+  phase = "direct",
+  stagedIntent,
+  ownerAssisted = env.DEPENDABOT_OWNER_ASSISTED === "true",
 } = {}) {
   const number = Number(env.DEPENDABOT_PR);
   const sha = env.DEPENDABOT_SHA;
@@ -134,6 +137,18 @@ export async function refreshNative({
     return pr;
   }
   async function restore(intent) {
+    const latest = await request("api", `${root}/pulls/${number}`);
+    if (
+      latest.state === "open" &&
+      latest.head?.sha !== sha &&
+      shaPattern.test(latest.head?.sha || "")
+    ) {
+      const proof = await ownedIntent(latest, request);
+      if (!proof || proof.name !== intent.name)
+        throw new Error("Changed-head refresh ownership is unverified");
+      console.log("Open changed head requires fresh verified metadata before intent cleanup");
+      return;
+    }
     let pr = await verified();
     const proof = await ownedIntent(pr, request);
     if (!proof || proof.name !== intent.name)
@@ -156,10 +171,54 @@ export async function refreshNative({
     }
     console.log(`Verified PR #${number} open after native refresh`);
   }
+  async function perform(intent, assisted) {
+    try {
+      const current = await verified();
+      const proof = await ownedIntent(current, request);
+      const main = await request("api", `${root}/branches/main`);
+      if (
+        current.state !== "open" ||
+        proof?.name !== intent.name ||
+        proof.head !== sha ||
+        main.commit?.sha !== intent.base
+      )
+        throw new Error("Refresh intent/head/base is not authenticated");
+      if (env.DEPENDENCY_DEADLINE && Number(env.DEPENDENCY_DEADLINE) - now() < 180000)
+        throw new Error("Insufficient maintenance budget for owner handoff");
+      await request("api", "--method", "PATCH", `${root}/pulls/${number}`, "-f", "state=closed");
+      if (assisted) {
+        const ownerDeadline = now() + 120000;
+        while (now() < ownerDeadline) {
+          const state = await request("api", `${root}/pulls/${number}`);
+          if (state.state === "open" && state.merged === false) return;
+          await verified(); // Reject manual/obsolete closures, changed closed heads and invalid signatures.
+          await sleep(5000);
+        }
+        throw new Error("Owner handoff timed out; restoring the machine-owned closure");
+      }
+    } finally {
+      await restore(intent);
+    }
+  }
   const pr = await verified();
   const pending = await ownedIntent(pr, request);
-  if (pr.state === "closed") {
+  if (phase === "cleanup") {
+    if (pending) await restore(pending);
+    return { status: "ready" };
+  }
+  if (phase === "finish") {
+    if (
+      !ownerAssisted ||
+      !stagedIntent ||
+      pending?.name !== stagedIntent.name ||
+      pending?.head !== sha ||
+      pending?.base !== stagedIntent.base
+    )
+      throw new Error("Owner-assisted refresh has no matching staged intent");
+    await perform(pending, true);
+  } else if (pr.state === "closed") {
     await restore(pending);
+    if (phase === "stage") return { status: "deferred" };
   } else {
     // Also finish cleanup after a crash following reopen or between label removals.
     if (pending) await restore(pending);
@@ -167,7 +226,12 @@ export async function refreshNative({
     const base = main.commit?.sha;
     if (!shaPattern.test(base || "")) throw new Error("Invalid native refresh base");
     const comparison = await request("api", `${root}/compare/${base}...${sha}`);
-    if (comparison.merge_base_commit?.sha === base) return sha;
+    if (comparison.merge_base_commit?.sha === base)
+      return phase === "stage" ? { status: "ready" } : sha;
+    if (phase === "stage" && !ownerAssisted) {
+      console.log(`DEFERRED: Stale PR #${number} requires an explicit owner-assisted dispatch`);
+      return { status: "deferred" };
+    }
     const events = await eventsFor(number, request);
     const attempts = [1, 2].filter((attempt) =>
       events.some(
@@ -203,7 +267,10 @@ export async function refreshNative({
         now() - Date.parse(last.created_at) < 10 * 60 * 1000)
     )
       throw new Error("Native refresh is already pending for this PR/base");
-    if (env.DEPENDENCY_DEADLINE && Number(env.DEPENDENCY_DEADLINE) - now() < 90000)
+    if (
+      env.DEPENDENCY_DEADLINE &&
+      Number(env.DEPENDENCY_DEADLINE) - now() < (phase === "stage" ? 240000 : 90000)
+    )
       throw new Error("Insufficient maintenance budget to close and restore a PR");
     const attempt = attempts.includes(1) ? 2 : 1;
     const intent = { name: binderName(number, base, attempt), head: sha, base, attempt };
@@ -245,15 +312,8 @@ export async function refreshNative({
       "-f",
       `labels[]=${intent.name}`
     );
-    try {
-      const current = await verified();
-      if (current.state !== "open" || !(await ownedIntent(current, request)))
-        throw new Error("Refresh intent is not authenticated");
-      await request("api", "--method", "PATCH", `${root}/pulls/${number}`, "-f", "state=closed");
-    } finally {
-      // SIGKILL can prevent finally; the durable label + bot closure evidence enables a later sweep.
-      await restore(intent);
-    }
+    if (phase === "stage") return { status: "staged", intent };
+    await perform(intent, false);
   }
   const deadline = now() + 5 * 60 * 1000;
   const approvedRuns = new Set();
