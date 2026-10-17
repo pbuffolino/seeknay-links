@@ -196,20 +196,25 @@ test("a pending publisher can merge by SHA after required checks, then refreshes
     DEPENDABOT_SHA: sha,
     DEPENDABOT_METADATA: JSON.stringify(data.dependencies),
   };
+  let analysisReads = 0;
   const request = async (...args) => {
     if (args.includes("--method")) {
       writes.push(args);
       return { merged: true };
     }
     const endpoint = args[1];
-    if (endpoint.includes("/code-scanning/analyses?"))
-      return ["/language:actions", "/language:javascript-typescript"].map((category) => ({
+    if (endpoint.includes("/code-scanning/analyses?")) {
+      const scans = ["/language:actions", "/language:javascript-typescript"].map((category) => ({
         category,
         commit_sha: sha,
         tool: { name: "CodeQL" },
         error: "",
         warning: "",
       }));
+      return ++analysisReads === 1
+        ? scans.slice(0, 1)
+        : [...scans, { ...scans[0], error: "old attempt" }];
+    }
     if (endpoint.includes("/code-scanning/alerts?")) return [];
     if (endpoint.endsWith("/files?per_page=100")) return data.files;
     if (endpoint.endsWith("/commits?per_page=100")) return data.commits;
@@ -228,9 +233,18 @@ test("a pending publisher can merge by SHA after required checks, then refreshes
           },
         ],
       };
-    return writes.length ? { ...data.pr, merged: true } : data.pr;
+    return writes.length ? { ...data.pr, merged: true, merge_commit_sha: "d".repeat(40) } : data.pr;
   };
-  await mergeDependabot({ env, request });
+  let clock = 0;
+  await mergeDependabot({
+    env,
+    request,
+    now: () => clock,
+    sleep: async (ms) => {
+      clock += ms;
+    },
+  });
+  assert.equal(analysisReads, 2);
   assert.equal(writes.length, 4);
   assert(writes[0].includes(`sha=${sha}`));
   assert(writes[1].includes(`repos/${repo}/actions/workflows/ci.yml/dispatches`));

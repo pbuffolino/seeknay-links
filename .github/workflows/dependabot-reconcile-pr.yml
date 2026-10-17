@@ -1,0 +1,170 @@
+name: Reconcile one Dependabot PR
+
+on:
+  workflow_call:
+    inputs:
+      number:
+        required: true
+        type: number
+      deadline:
+        required: true
+        type: string
+      allow-rebase:
+        required: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  DEPENDENCY_DEADLINE: ${{ inputs.deadline }}
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      sha: ${{ steps.prepare.outputs.sha }}
+      dependencies: ${{ steps.metadata.outputs.updated-dependencies-json }}
+      eligible: ${{ steps.classify.outputs.eligible }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - id: prepare
+        run: node scripts/reconcile-dependabot.mjs prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDABOT_PR: ${{ inputs.number }}
+      # The pinned action has no PR-number input. Feed it a REST-fetched payload;
+      # commit verification stays enabled. No PR code is checked out or executed.
+      - id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          skip-commit-verification: false
+          skip-verification: false
+        env:
+          NODE_OPTIONS: '--import="${{ github.workspace }}/scripts/dependabot-metadata-context.mjs"'
+      - id: classify
+        run: node scripts/reconcile-dependabot.mjs classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDABOT_PR: ${{ inputs.number }}
+          DEPENDABOT_SHA: ${{ steps.prepare.outputs.sha }}
+          DEPENDABOT_METADATA: ${{ steps.metadata.outputs.updated-dependencies-json }}
+
+  refresh:
+    needs: inspect
+    if: needs.inspect.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - run: node scripts/reconcile-dependabot.mjs refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDABOT_PR: ${{ inputs.number }}
+          DEPENDABOT_SHA: ${{ needs.inspect.outputs.sha }}
+          DEPENDABOT_METADATA: ${{ needs.inspect.outputs.dependencies }}
+          DEPENDABOT_REBASE_COMMENTS_APPROVED: ${{ inputs.allow-rebase && vars.DEPENDABOT_REBASE_COMMENTS_APPROVED == 'true' && 'true' || 'false' }}
+
+  metadata:
+    needs: refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      sha: ${{ steps.prepare.outputs.sha }}
+      dependencies: ${{ steps.metadata.outputs.updated-dependencies-json }}
+      eligible: ${{ steps.classify.outputs.eligible }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - id: prepare
+        run: node scripts/reconcile-dependabot.mjs prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDABOT_PR: ${{ inputs.number }}
+      - id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          skip-commit-verification: false
+          skip-verification: false
+        env:
+          NODE_OPTIONS: '--import="${{ github.workspace }}/scripts/dependabot-metadata-context.mjs"'
+      - id: classify
+        run: node scripts/reconcile-dependabot.mjs classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDABOT_PR: ${{ inputs.number }}
+          DEPENDABOT_SHA: ${{ steps.prepare.outputs.sha }}
+          DEPENDABOT_METADATA: ${{ steps.metadata.outputs.updated-dependencies-json }}
+
+  merge:
+    needs: metadata
+    if: needs.metadata.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+      security-events: read
+      pages: write
+    outputs:
+      sha: ${{ steps.merge.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - name: Merge exact verified head through native protection
+        id: merge
+        run: node scripts/merge-dependabot.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDABOT_PR: ${{ inputs.number }}
+          DEPENDABOT_SHA: ${{ needs.metadata.outputs.sha }}
+          DEPENDABOT_METADATA: ${{ needs.metadata.outputs.dependencies }}
+
+  verify-publication:
+    needs: merge
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      security-events: read
+      deployments: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - name: Require the trusted checkout to match the publication revision
+        run: node scripts/dependency-publication.mjs assert-checkout
+        env:
+          PUBLICATION_SHA: ${{ needs.merge.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - run: npm ci --ignore-scripts
+      - run: node scripts/dependency-publication.mjs verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLICATION_SHA: ${{ needs.merge.outputs.sha }}

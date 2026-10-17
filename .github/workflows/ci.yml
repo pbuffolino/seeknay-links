@@ -78,3 +78,38 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+
+  dependency-metadata-adapter:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: candidate
+        run: node scripts/reconcile-dependabot.mjs smoke
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Exercise the pinned metadata action with the isolated context
+        if: steps.candidate.outputs.count == '1'
+        id: metadata
+        continue-on-error: true
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          skip-commit-verification: false
+          skip-verification: false
+        env:
+          NODE_OPTIONS: '--import="${{ github.workspace }}/scripts/dependabot-metadata-context.mjs"'
+      - name: Require metadata proof unless the candidate naturally closed or changed
+        if: steps.candidate.outputs.count == '1'
+        run: node scripts/reconcile-dependabot.mjs smoke-result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          METADATA_OUTCOME: ${{ steps.metadata.outcome }}
+          DEPENDABOT_PR: ${{ steps.candidate.outputs.number }}
+          DEPENDABOT_SHA: ${{ steps.candidate.outputs.sha }}
+          DEPENDABOT_METADATA: ${{ steps.metadata.outputs.updated-dependencies-json }}

@@ -29,12 +29,45 @@ The merge request includes the expected head SHA and does not bypass protection.
 checks ancestry against the latest base revision immediately before merging, in addition to
 native strict protection. Its token reads the public branch summary rather than requiring
 administration access.
-It stops after twelve minutes if checks, review requirements, or branch freshness block it.
-Dependabot can rebase an outdated PR; inspect failed publisher runs rather than bypassing CI.
+The trusted reconciler runs hourly, on dependency PR events, and by manual dispatch on `main`.
+It processes a rotating batch of at most six PRs serially. One repository-wide workflow
+concurrency group prevents overlapping dependency publishers. Each merge attempt retains a
+twelve-minute check deadline; refresh waits at most five minutes and publication verification
+at most ten minutes. A shared 85-minute deadline stops further GitHub requests, leaving time
+to report within a 90-minute maintenance budget. Failed candidates do not cancel the rest of
+the batch. Verified major upgrades are recorded for review and skipped; unknown metadata,
+invalid signatures, changed heads, and unexpected scopes fail closed.
+
+Public `@dependabot rebase` comments require explicit owner authorization and the repository
+variable `DEPENDABOT_REBASE_COMMENTS_APPROVED` set to exactly `true`. Leave it unset until
+approved. Dispatch inputs and PR contents cannot enable it. Requests are deduplicated by
+PR/head/base for the lifetime of the comment, with at most two requests per PR/base revision.
+An unchanged pending head is never reposted. Incomplete comment history stops writes.
+The reconciler never rebases or adds commits itself. A changed head always goes through fresh
+signature, metadata, scope, CI, CodeQL, and native protection checks before merging.
+
+Metadata collection runs with read-only permissions. A small Node preload supplies a fresh
+REST-fetched PR payload to the immutable `dependabot/fetch-metadata` action before its context
+initializes. It does not override GitHub default variables in YAML or modify the runner's
+`event.json`. Commit verification remains enabled. A read-only CI job exercises the actual
+pinned action against an open dependency PR. The site tooling keeps Node 22; the pinned
+metadata action uses its own declared Node runtime.
 [GitHub Dependabot automation guidance](https://docs.github.com/en/code-security/tutorials/secure-your-dependencies/automate-dependabot-with-actions).
 
 After verifying the merge, the publishers explicitly dispatch CI and CodeQL on `main`, then
-request a legacy Pages build. The dependency publisher needs `actions: write` for those
+request a legacy Pages build. Before processing the next candidate, a separate read-only job
+requires successful exact-revision main CI and CodeQL workflows, both warning-free CodeQL
+categories, no open main scan alerts, a successful exact-revision Pages build and deployment,
+and matching live HTML/resources. Verification jobs check out literal protected `main` with
+credentials disabled and assert its local HEAD matches the expected publication SHA before
+setup or installation. The latest result per CodeQL category controls retries;
+an older failed attempt does not invalidate a newer successful analysis. Main advancing during
+verification requires a new receipt. Origin TLS remains a separate weekly security check and
+is never bypassed or repaired by the publisher.
+
+Every reconciliation first recovers missing main checks/publication and verifies delivery,
+even with no open PRs. This recovers an interrupted publisher after a valid merge without
+reverting the dependency fix. The dependency publisher needs `actions: write` for those
 dispatches. A build
 request is not delivery proof. Verify the completed deployment and live resources. If a build
 request fails after a successful merge, investigate the failed run and request a Pages rebuild
