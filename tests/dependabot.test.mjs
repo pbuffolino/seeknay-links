@@ -6,6 +6,7 @@ import {
   matchingCI,
   mergeDependabot,
   requiredChecks,
+  successfulScans,
 } from "../scripts/merge-dependabot.mjs";
 
 const repo = "pbuffolino/seeknay-links";
@@ -163,6 +164,24 @@ test("CI match binds workflow, PR number, event, and exact head", () => {
   ])
     assert.equal(matchingCI([{ ...run, ...different }], sha, 123), undefined);
 });
+test("requires both current CodeQL analyses without errors or coverage warnings", () => {
+  const analyses = ["/language:actions", "/language:javascript-typescript"].map((category) => ({
+    category,
+    commit_sha: sha,
+    tool: { name: "CodeQL" },
+    error: "",
+    warning: "",
+  }));
+  assert.equal(successfulScans(analyses, sha), true);
+  assert.equal(successfulScans(analyses.slice(1), sha), false);
+  for (const delta of [
+    { commit_sha: "b".repeat(40) },
+    { error: "Failed" },
+    { warning: "Partial coverage" },
+    { tool: { name: "Other" } },
+  ])
+    assert.equal(successfulScans([{ ...analyses[0], ...delta }, analyses[1]], sha), false);
+});
 test("merges by SHA only after guards and successful CI, then requests Pages publication", async () => {
   const data = fixture();
   const writes = [];
@@ -178,6 +197,15 @@ test("merges by SHA only after guards and successful CI, then requests Pages pub
       return { merged: true };
     }
     const endpoint = args[1];
+    if (endpoint.includes("/code-scanning/analyses?"))
+      return ["/language:actions", "/language:javascript-typescript"].map((category) => ({
+        category,
+        commit_sha: sha,
+        tool: { name: "CodeQL" },
+        error: "",
+        warning: "",
+      }));
+    if (endpoint.includes("/code-scanning/alerts?")) return [];
     if (endpoint.endsWith("/files?per_page=100")) return data.files;
     if (endpoint.endsWith("/commits?per_page=100")) return data.commits;
     if (endpoint === "graphql")
@@ -205,4 +233,53 @@ test("merges by SHA only after guards and successful CI, then requests Pages pub
   data.commits[0].commit.verification.verified = false;
   await assert.rejects(mergeDependabot({ env, request }), /guard/);
   assert.equal(writes.length, 0);
+});
+test("a code-scanning alert or failed CI prevents every write", async () => {
+  const data = fixture();
+  const env = {
+    GITHUB_REPOSITORY: repo,
+    DEPENDABOT_PR: "123",
+    DEPENDABOT_SHA: sha,
+    DEPENDABOT_METADATA: JSON.stringify(data.dependencies),
+  };
+  let conclusion = "success";
+  let writes = 0;
+  const request = async (...args) => {
+    if (args.includes("--method")) {
+      writes++;
+      throw new Error("Unexpected write");
+    }
+    const endpoint = args[1];
+    if (endpoint === "graphql")
+      return { data: { repository: { ref: { branchProtectionRule: data.protection } } } };
+    if (endpoint.includes("/files?")) return data.files;
+    if (endpoint.includes("/commits?")) return data.commits;
+    if (endpoint.includes("/analyses?"))
+      return ["/language:actions", "/language:javascript-typescript"].map((category) => ({
+        category,
+        commit_sha: sha,
+        tool: { name: "CodeQL" },
+        error: "",
+        warning: "",
+      }));
+    if (endpoint.includes("/alerts?")) return [{ number: 1 }];
+    if (endpoint.includes("/runs?"))
+      return {
+        workflow_runs: [
+          {
+            head_sha: sha,
+            event: "pull_request",
+            path: ".github/workflows/ci.yml",
+            pull_requests: [{ number: 123 }],
+            status: "completed",
+            conclusion,
+          },
+        ],
+      };
+    return data.pr;
+  };
+  await assert.rejects(mergeDependabot({ env, request }), /unresolved code-scanning/);
+  conclusion = "failure";
+  await assert.rejects(mergeDependabot({ env, request }), /CI did not succeed/);
+  assert.equal(writes, 0);
 });

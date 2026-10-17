@@ -10,6 +10,8 @@ export const requiredChecks = [
   "security-audit",
   "browser-test",
   "dependency-review",
+  "Analyze (actions)",
+  "Analyze (javascript-typescript)",
 ];
 const updateTypes = ["version-update:semver-patch", "version-update:semver-minor"];
 
@@ -99,6 +101,15 @@ export function matchingCI(runs, sha, number) {
   );
 }
 
+export function successfulScans(analyses, sha) {
+  return ["/language:actions", "/language:javascript-typescript"].every((category) => {
+    const latest = analyses.find(
+      (analysis) => analysis.category === category && analysis.tool?.name === "CodeQL"
+    );
+    return latest?.commit_sha === sha && latest.error === "" && !latest.warning;
+  });
+}
+
 export async function mergeDependabot({ env = process.env, request } = {}) {
   const repo = env.GITHUB_REPOSITORY;
   const number = env.DEPENDABOT_PR;
@@ -150,6 +161,18 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
       throw new Error("Dependency CI did not succeed");
     const current = await verify();
     if (run?.conclusion === "success" && current.mergeable_state === "clean") {
+      const analyses = await gh(
+        "api",
+        `repos/${repo}/code-scanning/analyses?ref=refs/pull/${number}/head&tool_name=CodeQL&per_page=100`
+      );
+      if (!successfulScans(analyses, sha))
+        throw new Error("Current dependency CodeQL coverage is incomplete");
+      const alerts = await gh(
+        "api",
+        `repos/${repo}/code-scanning/alerts?ref=refs/pull/${number}/head&state=open&per_page=100`
+      );
+      if (alerts.length) throw new Error("Dependency PR has unresolved code-scanning alerts");
+      await verify();
       const result = await gh(
         "api",
         "--method",
