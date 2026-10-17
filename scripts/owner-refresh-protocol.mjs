@@ -16,8 +16,14 @@ export function validOwnerRequest(value, now = Date.now()) {
     sha.test(value.base || "") &&
     [1, 2].includes(value.intent?.attempt) &&
     value.intent.head === value.head &&
-    value.intent.base === value.base &&
-    value.intent.name === `r${value.number}-${value.base}-${value.intent.attempt}` &&
+    sha.test(value.intent.base || "") &&
+    (value.mode === "owner-cycle" || value.intent.base === value.base) &&
+    value.intent.name === `r${value.number}-${value.intent.base}-${value.intent.attempt}` &&
+    (value.mode === undefined ||
+      (value.mode === "owner-cycle" &&
+        (value.recoverOnly === undefined || typeof value.recoverOnly === "boolean") &&
+        ((value.initialState === "open" && value.closureId === 0 && value.recoverOnly !== true) ||
+          (value.initialState === "closed" && integer(value.closureId))))) &&
     integer(value.createdAt) &&
     value.createdAt <= now + 30000 &&
     integer(value.expiresAt) &&
@@ -39,7 +45,7 @@ export function validOwnerRequest(value, now = Date.now()) {
   );
 }
 
-export function ownerRequest(env, intent, now = Date.now()) {
+export function ownerRequest(env, intent, now = Date.now(), cycle) {
   if (
     env.GITHUB_EVENT_NAME !== "workflow_dispatch" ||
     env.GITHUB_REF !== "refs/heads/main" ||
@@ -55,7 +61,7 @@ export function ownerRequest(env, intent, now = Date.now()) {
     workflowSha: env.GITHUB_SHA,
     number: Number(env.DEPENDABOT_PR),
     head: env.DEPENDABOT_SHA,
-    base: intent.base,
+    base: cycle?.base || intent.base,
     intent,
     createdAt: now,
     expiresAt: Math.min(now + 300000, Number(env.DEPENDENCY_DEADLINE)),
@@ -67,6 +73,41 @@ export function ownerRequest(env, intent, now = Date.now()) {
       packageEcosystem: dependency.packageEcosystem,
     })),
   };
+  if (cycle)
+    Object.assign(value, {
+      mode: "owner-cycle",
+      initialState: cycle.initialState,
+      closureId: cycle.closureId,
+      recoverOnly: cycle.recoverOnly || false,
+    });
   if (!validOwnerRequest(value, now)) throw new Error("Invalid owner refresh request provenance");
   return value;
+}
+
+export function trustedDispatch(run, id, sha, workflowId) {
+  return (
+    run?.id === id &&
+    run.workflow_id === workflowId &&
+    run.path === ".github/workflows/dependabot-automerge.yml" &&
+    run.event === "workflow_dispatch" &&
+    run.head_branch === "main" &&
+    run.head_sha === sha &&
+    run.repository?.full_name === "pbuffolino/seeknay-links" &&
+    run.head_repository?.full_name === "pbuffolino/seeknay-links" &&
+    run.actor?.login === "pbuffolino" &&
+    run.actor.type === "User" &&
+    run.triggering_actor?.login === "pbuffolino" &&
+    run.triggering_actor.type === "User"
+  );
+}
+export function trustedRun(run, id, sha, workflowId) {
+  return (
+    trustedDispatch(run, id, sha, workflowId) &&
+    run.referenced_workflows?.some(
+      (entry) =>
+        entry.path ===
+          `pbuffolino/seeknay-links/.github/workflows/dependabot-reconcile-pr.yml@${sha}` &&
+        entry.sha === sha
+    )
+  );
 }

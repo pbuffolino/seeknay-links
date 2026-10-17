@@ -538,7 +538,7 @@ test("a later machine recovery restores its bot-deleted signed ref before reopen
   assert(f.writes[restore].args.includes(`sha=${head}`));
 });
 
-test("an assisted sweep recovers the old closed intent before staging against advanced protected main", async () => {
+test("an assisted sweep stages fresh recovery of an old closed intent without GHA ref writes", async () => {
   const f = fixture();
   f.addIntent();
   f.pr.state = "closed";
@@ -557,14 +557,11 @@ test("an assisted sweep recovers the old closed intent before staging against ad
   };
   const staged = await refreshNative({ ...f, request, phase: "stage", ownerAssisted: true });
   assert.equal(staged.status, "staged");
-  assert.equal(staged.intent.base, nextBase);
-  assert.equal(f.pr.state, "open");
-  assert.deepEqual(
-    f.writes
-      .filter((write) => write.method === "PATCH")
-      .map((write) => write.args.find((arg) => arg.startsWith?.("state="))),
-    ["state=open"]
-  );
+  assert.equal(staged.intent.base, base);
+  assert.equal(staged.base, nextBase);
+  assert.equal(staged.initialState, "closed");
+  assert.equal(f.pr.state, "closed");
+  assert.equal(f.writes.length, 0);
 });
 
 test("a new head during owner reopening keeps markers until fresh metadata verifies cleanup", async () => {

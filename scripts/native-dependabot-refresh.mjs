@@ -4,6 +4,7 @@ import {
   protectedBranch,
   approveDependencyRuns,
 } from "./merge-dependabot.mjs";
+import { ownerClosureGrant, cycleGrant } from "./owner-cycle-intent.mjs";
 
 const repo = "pbuffolino/seeknay-links";
 const root = `repos/${repo}`;
@@ -83,7 +84,7 @@ export async function ownedIntent(pr, request = githubRequest) {
     // A later manual or Dependabot obsolete closure is never ours to reverse.
     if (
       closure?.event !== "closed" ||
-      !isMachine(closure.actor) ||
+      (!isMachine(closure.actor) && !(await ownerClosureGrant(pr, events, request))) ||
       closure.id <= Math.max(binding.id, marker.id)
     )
       return null;
@@ -194,7 +195,7 @@ export async function restoreOwnedRef({
     .at(-1);
   if (
     closure?.event !== "closed" ||
-    !isMachine(closure.actor) ||
+    (!isMachine(closure.actor) && !(await ownerClosureGrant(original.pr, events, request))) ||
     deletion?.event !== "head_ref_deleted" ||
     deletion.actor?.login !== "dependabot[bot]" ||
     deletion.actor.type !== "Bot" ||
@@ -203,7 +204,8 @@ export async function restoreOwnedRef({
     throw new Error(
       "Missing post-closure Dependabot deletion proof; ref restoration requires review"
     );
-  if (restored.has(original.intent.name))
+  const restorationKey = `${original.intent.name}:${closure.id}`;
+  if (restored.has(restorationKey) || restored.has(original.intent.name))
     throw new Error("Bot ref deleted again during this handoff; review required");
   if (events.some((event) => event.event === "head_ref_restored" && event.id > closure.id))
     throw new Error("Bot ref deleted again after a recorded restoration; review required");
@@ -216,7 +218,7 @@ export async function restoreOwnedRef({
     throw new Error("Owned ref/closure/base changed before restoration");
   ref = await reference();
   if (!ref) {
-    restored.add(original.intent.name);
+    restored.add(restorationKey);
     try {
       await request(
         "api",
@@ -253,6 +255,7 @@ export async function refreshNative({
   approve = approveDependencyRuns,
   phase = "direct",
   stagedIntent,
+  stagedRequest,
   ownerAssisted = env.DEPENDABOT_OWNER_ASSISTED === "true",
 } = {}) {
   const number = Number(env.DEPENDABOT_PR);
@@ -314,7 +317,19 @@ export async function refreshNative({
     if (pr.state !== "open" || pr.head.sha !== sha)
       throw new Error("Cannot verify native refresh reopened state");
     // Remove only our two labels, never replace the label set or touch reviews/branches.
-    for (const name of [intentLabel, intent.name]) {
+    const ownerGrants = pr.labels.filter((label) => /^dependency-owner-/.test(label.name));
+    for (const grant of ownerGrants)
+      if (
+        !(await ownerClosureGrant(
+          { ...pr, head: { ...pr.head, sha: intent.head } },
+          await eventsFor(number, request),
+          request,
+          false,
+          grant.name
+        ))
+      )
+        throw new Error("Owner grant is not authenticated for cleanup");
+    for (const name of [intentLabel, intent.name, ...ownerGrants.map((label) => label.name)]) {
       if (pr.labels.some((label) => label.name === name))
         await request(
           "api",
@@ -355,6 +370,20 @@ export async function refreshNative({
       await restore(intent);
     }
   }
+  if (phase === "finish") {
+    const current = await request("api", `${root}/pulls/${number}`);
+    const proof = current.state === "open" ? await ownedIntent(current, request) : null;
+    if (
+      current.merged === false &&
+      current.head?.sha !== sha &&
+      shaPattern.test(current.head?.sha || "") &&
+      proof?.head === sha &&
+      proof.name === stagedIntent?.name
+    ) {
+      console.log("New bot head arrived before finish; fresh metadata and scans are required");
+      return current.head.sha;
+    }
+  }
   const pr = await verified();
   const pending = await ownedIntent(pr, request);
   if (phase === "cleanup") {
@@ -370,8 +399,83 @@ export async function refreshNative({
       pending?.base !== stagedIntent.base
     )
       throw new Error("Owner-assisted refresh has no matching staged intent");
-    await perform(pending, true);
+    if (stagedRequest?.mode === "owner-cycle") {
+      try {
+        const ownerDeadline = now() + 120000;
+        let reopened = false;
+        while (now() < ownerDeadline) {
+          const state = await request("api", `${root}/pulls/${number}`);
+          const events = await eventsFor(number, request);
+          const latest = events
+            .filter((event) => ["closed", "reopened"].includes(event.event))
+            .at(-1);
+          if (
+            state.state === "open" &&
+            state.merged === false &&
+            state.head?.sha !== sha &&
+            shaPattern.test(state.head?.sha || "") &&
+            (await ownedIntent(state, request))?.head === sha
+          ) {
+            reopened = true;
+            break;
+          }
+          const grantName = cycleGrant(stagedRequest).name;
+          const attached = events
+            .filter((event) => event.event === "labeled" && event.label?.name === grantName)
+            .at(-1);
+          const cycleClose = events
+            .filter(
+              (event) =>
+                event.event === "closed" &&
+                event.id > attached?.id &&
+                event.actor?.login === "pbuffolino" &&
+                event.actor.type === "User"
+            )
+            .at(-1);
+          if (
+            state.state === "open" &&
+            state.merged === false &&
+            latest?.event === "reopened" &&
+            latest.actor?.login === "pbuffolino" &&
+            latest.actor.type === "User" &&
+            (stagedRequest.recoverOnly
+              ? latest.id > stagedRequest.closureId
+              : cycleClose && latest.id > cycleClose.id) &&
+            Date.parse(latest.created_at) >= stagedRequest.createdAt - 1000
+          ) {
+            reopened = true;
+            break;
+          }
+          await verified();
+          await sleep(5000);
+        }
+        if (!reopened) throw new Error("Owner full-cycle handoff timed out; recovery required");
+      } finally {
+        await restore(pending);
+      }
+    } else await perform(pending, true);
   } else if (pr.state === "closed") {
+    if (phase === "stage" && ownerAssisted) {
+      const main = await request("api", `${root}/branches/main`);
+      if (!protectedBranch(main) || !shaPattern.test(main.commit?.sha || ""))
+        throw new Error("Owner recovery main/protection is unverified");
+      const ancestry = await request("api", `${root}/compare/${pending.base}...${main.commit.sha}`);
+      if (ancestry.merge_base_commit?.sha !== pending.base)
+        throw new Error("Owner recovery intent is not on protected main");
+      const closure = (await eventsFor(number, request))
+        .filter((event) => ["closed", "reopened"].includes(event.event))
+        .at(-1);
+      return {
+        status: "staged",
+        intent: pending,
+        base: main.commit.sha,
+        initialState: "closed",
+        closureId: closure.id,
+        recoverOnly: Boolean(
+          await ownerClosureGrant(pr, await eventsFor(number, request), request)
+        ),
+      };
+    }
     await restore(pending);
     if (phase === "stage")
       return ownerAssisted

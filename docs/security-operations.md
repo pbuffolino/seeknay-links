@@ -51,19 +51,27 @@ closed/unmerged/head/base state must verify. The receipt records `ALREADY APPLIE
 merge. Unknown or incomplete evidence leaves the PR for review. No branch or review is changed.
 
 Scheduled/event runs merge fresh eligible heads and defer stale ones without state churn.
-Owner-assisted manual runs use native close/reopen with the existing `pull-requests: write` permission. Before
-closing an eligible signed patch/minor PR, the reconciler adds the reserved
-`dependency-refresh-intent` label and an attempt label binding the PR number, full head SHA,
-full base SHA, and attempt number. The machine publishes a short-lived data-only request
-artifact, then closes the PR. An authenticated local owner driver may reopen only that exact
-active trusted run's signed eligible machine-owned closure. The driver never closes, comments,
-merges, removes labels, or deletes branches. The machine waits at most two minutes for the
-handoff, restores open in `finally` on timeout, and removes only its own
-markers after verifying the PR is open. Existing labels, reviews, and branches are preserved.
-Subsequent sweeps prioritize interrupted refreshes, but recover a closed PR only when its
-unchanged signed head remains eligible and label/closure events authenticate GitHub Actions
-ownership. Unmarked PRs, human closures, merged PRs, and obsolete updates closed by Dependabot
-are never reopened. Incomplete or conflicting evidence requires review.
+Owner-assisted manual runs use the existing local owner authentication for a complete native
+close/reopen cycle. The machine first verifies a signed eligible patch/minor PR and attaches
+its reserved `dependency-refresh-intent` and PR/head/base/attempt labels. It publishes a
+short-lived data-only request artifact and a durable machine-issued owner grant. The local
+driver repeats complete eligibility, exact run/artifact/inspection, main/ancestry and grant
+checks before closing and reopening once as the authenticated owner. A verified reopen alone
+is not refresh proof: the backend waits for a new signed bot head and repeats metadata, CI,
+CodeQL and native merge checks. The helper never comments, merges, removes labels, updates an
+existing ref, or deletes a branch. Public rebase comments remain disabled.
+
+Both helper and backend attempt open-state recovery in `finally`. Later sweeps recognize an
+interrupted owner closure only through its machine-attached, exact trusted dispatch grant,
+successful inspection, unchanged signed head and a single owner closure within the grant's
+short authorization window. Unmarked, unrelated human, obsolete, duplicated or unknown
+closures remain closed. Existing labels and reviews are preserved; only authenticated
+machine markers are cleared after verified open state. Grant definitions remain as bounded
+attempt evidence. A fresh inspected artifact can recover an older authenticated closure;
+it does not reuse an expired artifact. A recovery-only grant never authorizes a new close.
+The compact grant stores full head/base/workflow revisions and timestamps within GitHub's
+label limits. Requests are bounded to two cycles per PR/base and never repeat an unchanged
+head/base. Keep the local host available throughout the assisted run.
 
 Dispatch on protected main with `owner-assisted=true`, then run the driver immediately using
 the returned run ID and that dispatch's full workflow SHA:
@@ -77,7 +85,7 @@ Use existing owner `gh` authentication. The driver refuses token/host overrides 
 retrieves credentials or changes scopes. It waits through GitHub concurrency states and
 requires exact repository, owner actor, workflow path/ID/SHA, reusable workflow SHA, run attempt,
 successful inspection job, artifact identity/digest/size/expiry, complete metadata/signature/scope,
-protected base, and unreplayed machine label/closure evidence before reopening. ZIP contents
+protected base, and unreplayed machine grant/closure evidence before any PR write. ZIP contents
 are bounded JSON data with exactly one expected archive path; they are never executed or
 extracted into the checkout. Earlier-attempt artifacts are skipped. Unknown current requests
 fail closed. The driver waits for backend completion; its receipt is not a substitute for
@@ -91,11 +99,15 @@ creates a commit, or writes main. Full eligibility, authenticated closure/intent
 Dependabot deletion event, protected base/ancestry, and unchanged closure/base are required.
 The restored ref must read back at the exact signed SHA before reopening. Changed existing
 refs, human/obsolete closures, and repeated deletions require review. The refresh job reuses
-the publisher's existing contents-write capability for this bounded recovery; the owner
-helper uses existing authentication. `finally` and later sweeps can recover a deleted owned
-branch even after request expiry. An expired artifact never authorizes owner assistance;
-recovery first verifies/open-cleans the old intent, then an assisted run can stage a new
-request against current main. Obsolete PRs closed without refresh intent remain closed,
+the publisher's existing contents-write capability for this bounded recovery when GitHub
+permits it. GitHub can deny Actions reference creation when workflow permissions are needed.
+The owner helper uses only its existing authentication and no scopes are widened. A fresh,
+complete inspected recovery artifact may authorize owner restoration of the exact absent
+signed ref and recovery of that old authenticated closure against current protected main.
+If cleanup cannot restore/reopen with available permissions, it retains durable markers and
+reports failure for owner-assisted recovery. An expired artifact never authorizes a new owner
+action; only an already started helper's bounded `finally` cleanup may restore its own
+verified closure. Later owner recovery requires a fresh artifact. Obsolete PRs closed without refresh intent remain closed,
 including any branches Dependabot deleted for them.
 [GitHub native reference creation](https://docs.github.com/en/rest/git/refs#create-a-reference).
 

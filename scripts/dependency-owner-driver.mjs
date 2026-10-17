@@ -12,41 +12,15 @@ import {
   intentLabel,
   restoreOwnedRef,
 } from "./native-dependabot-refresh.mjs";
-import { validOwnerRequest } from "./owner-refresh-protocol.mjs";
+import { validOwnerRequest, trustedDispatch, trustedRun } from "./owner-refresh-protocol.mjs";
+import { assistOwnerCycle } from "./owner-cycle-helper.mjs";
+export { trustedDispatch, trustedRun } from "./owner-refresh-protocol.mjs";
 
 const exec = promisify(execFile);
 const repo = "pbuffolino/seeknay-links",
   root = `repos/${repo}`;
-const owner = "pbuffolino",
-  workflowPath = ".github/workflows/dependabot-automerge.yml";
+const owner = "pbuffolino";
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export function trustedDispatch(run, id, sha, workflowId) {
-  return (
-    run?.id === id &&
-    run.workflow_id === workflowId &&
-    run.path === workflowPath &&
-    run.event === "workflow_dispatch" &&
-    run.head_branch === "main" &&
-    run.head_sha === sha &&
-    run.repository?.full_name === repo &&
-    run.head_repository?.full_name === repo &&
-    run.actor?.login === owner &&
-    run.actor.type === "User" &&
-    run.triggering_actor?.login === owner &&
-    run.triggering_actor.type === "User"
-  );
-}
-export function trustedRun(run, id, sha, workflowId) {
-  return (
-    trustedDispatch(run, id, sha, workflowId) &&
-    run.referenced_workflows?.some(
-      (entry) =>
-        entry.path === `${repo}/.github/workflows/dependabot-reconcile-pr.yml@${sha}` &&
-        entry.sha === sha
-    )
-  );
-}
 
 export function trustedArtifact(artifact, run, now = Date.now()) {
   return (
@@ -124,6 +98,7 @@ export async function assistRequest({
     artifact.name !== `dependency-refresh-${run.id}-${run.run_attempt}-${value.number}`
   )
     throw new Error("Owner refresh request provenance is invalid or expired");
+  if (value.mode === "owner-cycle") return assistOwnerCycle({ value, artifact, run, request, now });
   async function verify() {
     const active = await request("api", `${root}/actions/runs/${run.id}`);
     if (
