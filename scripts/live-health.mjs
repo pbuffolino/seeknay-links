@@ -37,7 +37,7 @@ await check("HTTPS homepage matches this checkout and has security headers", asy
     headers(response) &&
     publicHtmlFingerprint(html) ===
       publicHtmlFingerprint(await fs.readFile("index.html", "utf8")) &&
-    !/static\.cloudflareinsights\.com\/beacon/.test(html)
+    !html.includes("static.cloudflareinsights.com/beacon")
   );
 });
 await check("HTTP redirects to HTTPS", async () => {
@@ -55,16 +55,23 @@ await check("Nested 404 has the saved error page and security headers", async ()
     (await response.text()) === (await fs.readFile("404.html", "utf8"))
   );
 });
-const html = await fs.readFile("index.html", "utf8");
-const resources = new Set([
+// Only literal public paths are sent over the network. Never derive request URLs from local files.
+const resources = [
   "assets/links.json",
   "robots.txt",
   "sitemap.xml",
   "assets/og.png",
-  ...[...html.matchAll(/(?:src|href)="((?:js\/|css\/|assets\/|favicon\.ico)[^"]*)"/g)].map(
-    (match) => match[1]
-  ),
-]);
+  "favicon.ico",
+  "assets/favicon-32.png",
+  "assets/favicon.svg",
+  "css/styles.css",
+  "js/ui.js",
+  "js/analytics.js",
+  "js/followers.js",
+  "js/links.js",
+  "assets/avatar-96.jpg",
+  "assets/avatar-192.jpg",
+];
 for (const resource of resources) {
   await check(`Published resource matches this checkout: ${resource.split("?")[0]}`, async () => {
     const response = await get(`/${resource}`);
