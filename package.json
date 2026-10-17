@@ -26,6 +26,6 @@
     "eslint-plugin-html": "^8.1.4",
     "globals": "^17.9.0",
     "parse5": "^8.0.1",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.10"
   }
 }
