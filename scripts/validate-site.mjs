@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { elements, attributes, text } from "./html.mjs";
 
 const links = JSON.parse(await fs.readFile("assets/links.json", "utf8"));
 const networks = ["tiktok", "youtube", "instagram", "bluesky", "facebook"];
@@ -39,12 +40,19 @@ for (const network of networks) {
 }
 for (const filename of ["index.html", "404.html"]) {
   const source = await fs.readFile(filename, "utf8");
-  assert(!/\s(?:style|on\w+)\s*=/i.test(source), "Inline styles and event handlers are forbidden");
-  for (const script of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
+  for (const element of elements(source)) {
+    const attrs = attributes(element);
     assert(
-      /\bsrc=/.test(script[1]) || /type="application\/ld\+json"/.test(script[1]),
-      "Executable scripts must be external"
+      !Object.keys(attrs).some((name) => name === "style" || name.startsWith("on")),
+      "Inline styles and event handlers are forbidden"
     );
+    if (element.tagName === "script") {
+      assert(
+        attrs.src || attrs.type === "application/ld+json",
+        "Executable scripts must be external"
+      );
+      if (!attrs.src) JSON.parse(text(element));
+    }
   }
 }
 const canonical = html.match(/<link rel="canonical" href="([^"]+)"/)[1];
