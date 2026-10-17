@@ -399,7 +399,7 @@ export async function refreshNative({
       await restore(intent);
     }
   }
-  if (phase === "finish") {
+  if (phase === "finish" || phase === "cleanup") {
     const current = await request("api", `${root}/pulls/${number}`);
     const proof = current.state === "open" ? await ownedIntent(current, request) : null;
     if (
@@ -407,10 +407,10 @@ export async function refreshNative({
       current.head?.sha !== sha &&
       shaPattern.test(current.head?.sha || "") &&
       proof?.head === sha &&
-      proof.name === stagedIntent?.name
+      (phase === "cleanup" || proof.name === stagedIntent?.name)
     ) {
-      console.log("New bot head arrived before finish; fresh metadata and scans are required");
-      return current.head.sha;
+      console.log("New head observed without writes; unverified until fresh metadata and scans");
+      return phase === "cleanup" ? { status: "ready" } : current.head.sha;
     }
   }
   const pr = await verified();
@@ -469,7 +469,11 @@ export async function refreshNative({
             latest.actor.type === "User" &&
             (stagedRequest.recoverOnly
               ? latest.id > stagedRequest.closureId
-              : cycleClose && latest.id > cycleClose.id) &&
+              : cycleClose &&
+                latest.id > cycleClose.id &&
+                Number.isFinite(Date.parse(cycleClose.created_at)) &&
+                Date.parse(cycleClose.created_at) >= stagedRequest.createdAt - 1000 &&
+                Date.parse(cycleClose.created_at) <= stagedRequest.expiresAt) &&
             Date.parse(latest.created_at) >= stagedRequest.createdAt - 1000
           ) {
             reopened = true;

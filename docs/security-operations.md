@@ -56,7 +56,13 @@ close/reopen cycle. The machine first verifies a signed eligible patch/minor PR 
 its reserved `dependency-refresh-intent` and PR/head/base/attempt labels. It publishes a
 short-lived data-only request artifact and a durable machine-issued owner grant. The local
 driver repeats complete eligibility, exact run/artifact/inspection, main/ancestry and grant
-checks before closing and reopening once as the authenticated owner. A verified reopen alone
+checks immediately before closing as the authenticated owner. The native close receipt must
+match that exact signed head and cached complete eligibility evidence. The helper then
+reopens immediately, without network verification between those two writes, and performs
+full post-cycle state, ownership, timeline, grant and base verification. A deletion racing a
+slow request still requires complete guarded recovery. An already open changed head permits
+only nonwriting cleanup; its eligibility remains unverified until fresh backend metadata.
+A verified reopen alone
 is not refresh proof: the backend waits for a new signed bot head and repeats metadata, CI,
 CodeQL and native merge checks. The helper never comments, merges, removes labels, updates an
 existing ref, or deletes a branch. Public rebase comments remain disabled.

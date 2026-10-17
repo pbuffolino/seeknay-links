@@ -181,6 +181,7 @@ function fixture(closed = false) {
             throw Object.assign(new Error("close receipt failed"), { status: 500 });
         } else {
           if (flags.failReopen) throw Object.assign(new Error("reopen failed"), { status: 500 });
+          if (flags.missing) throw Object.assign(new Error("head missing"), { status: 422 });
           pr.state = "open";
           event("reopened");
         }
@@ -290,7 +291,7 @@ test("fresh current-run artifact recovers old machine closure and missing signed
     f.writes
       .filter((w) => w.endpoint.endsWith("/pulls/7"))
       .map((w) => w.args.find((a) => a.startsWith("state="))),
-    ["state=open", "state=closed", "state=open"]
+    ["state=open", "state=closed", "state=open", "state=open"]
   );
 });
 test("owner close followed by helper termination remains authenticated and resumes without another close", async () => {
@@ -551,4 +552,131 @@ test("unknown or denied guard reads never trigger SSH, and owner restore makes n
   await assistRequest({ ...f, request });
   assert.equal(f.pr.state, "open");
   assert(f.writes.some((w) => w.endpoint === "ssh:create-only"));
+});
+
+test("fast cycle has no API roundtrip between close and immediate reopen, then verifies the full timeline", async () => {
+  const f = fixture(),
+    calls = [],
+    original = f.request;
+  const request = async (...args) => {
+    calls.push(args);
+    return original(...args);
+  };
+  await assistRequest({ ...f, request });
+  const closed = calls.findIndex((a) => a.includes("state=closed"));
+  assert(closed > 10);
+  assert(calls[closed + 1].includes("state=open"));
+  assert(calls.slice(closed + 2).some((a) => a.some((v) => v.includes?.("/events?"))));
+  assert.equal(f.pr.state, "open");
+  assert.equal(f.writes.filter((w) => w.args.includes("state=closed")).length, 1);
+});
+test("malformed close receipt cannot authorize the fast reopen; only fully guarded recovery may open", async () => {
+  const f = fixture(),
+    calls = [],
+    original = f.request;
+  const request = async (...args) => {
+    calls.push(args);
+    const value = await original(...args);
+    if (args.includes("state=closed")) return { ...value, head: { ...value.head, sha: base } };
+    return value;
+  };
+  await assert.rejects(assistRequest({ ...f, request }), /close receipt changed/);
+  const closed = calls.findIndex((a) => a.includes("state=closed"));
+  assert(!calls[closed + 1].includes("state=open"));
+  assert.equal(f.pr.state, "open");
+});
+test("malformed open receipt reports failure and does not authorize another mutation", async () => {
+  const f = fixture(),
+    original = f.request;
+  const request = async (...args) => {
+    const value = await original(...args);
+    return args.includes("state=open") ? { ...value, state: "closed" } : value;
+  };
+  await assert.rejects(assistRequest({ ...f, request }), /immediate reopen receipt failed/);
+  assert.equal(f.pr.state, "open");
+  assert.equal(f.writes.length, 2);
+});
+test("unknown closed head at close receipt remains fail-closed without reopening or merging", async () => {
+  const f = fixture(),
+    original = f.request;
+  const request = async (...args) => {
+    const value = await original(...args);
+    if (args.includes("state=closed")) {
+      f.pr.head.sha = base;
+      return { ...value, head: { ...value.head, sha: base } };
+    }
+    return value;
+  };
+  await assert.rejects(assistRequest({ ...f, request }));
+  assert.equal(f.pr.state, "closed");
+  assert.equal(f.writes.length, 1);
+});
+test("post-cycle unknown actor cannot verify success or authorize further writes", async () => {
+  const f = fixture(),
+    original = f.request;
+  const request = async (...args) => {
+    const value = await original(...args);
+    if (args.includes("state=open")) f.events.at(-1).actor = { login: "unknown", type: "User" };
+    return value;
+  };
+  await assert.rejects(assistRequest({ ...f, request }));
+  assert.equal(f.pr.state, "open");
+  assert.equal(f.writes.length, 2);
+});
+test("an open changed head is a nonwriting signal and leaves all eligibility to fresh backend metadata", async () => {
+  const f = fixture();
+  f.pr.head.sha = "e".repeat(40);
+  f.commits[0].commit.verification.verified = false;
+  await assistRequest(f);
+  assert.equal(f.writes.length, 0);
+  const { refreshNative } = await import("../scripts/native-dependabot-refresh.mjs");
+  await refreshNative({
+    env: {
+      GITHUB_REPOSITORY: repo,
+      DEPENDABOT_PR: "7",
+      DEPENDABOT_SHA: head,
+      DEPENDABOT_METADATA: JSON.stringify(f.value.dependencies),
+    },
+    request: f.request,
+    phase: "cleanup",
+  });
+  assert.equal(f.writes.length, 0);
+  assert(f.pr.labels.some((l) => l.name === "dependency-refresh-intent"));
+});
+test("head advancing immediately after fast reopen causes no stale-signature cleanup failure or additional write", async () => {
+  const f = fixture(),
+    original = f.request;
+  const request = async (...args) => {
+    const value = await original(...args);
+    if (args.includes("state=open")) {
+      f.pr.head.sha = "e".repeat(40);
+      f.commits[0].commit.verification.verified = false;
+    }
+    return value;
+  };
+  await assistRequest({ ...f, request });
+  assert.equal(f.pr.state, "open");
+  assert.equal(f.writes.length, 2);
+});
+
+test("a nearly expired owner grant cannot start a new close cycle", async () => {
+  const f = fixture();
+  f.now = () => start + 170000;
+  await assert.rejects(assistRequest(f), /Insufficient grant lifetime/);
+  assert.equal(f.writes.length, 0);
+});
+test("a close event outside the grant window cannot pass post-cycle verification", async () => {
+  const f = fixture(),
+    original = f.request;
+  const request = async (...args) => {
+    const value = await original(...args);
+    if (args.includes("state=open"))
+      f.events.find((e) => e.event === "closed").created_at = new Date(
+        start + 400000
+      ).toISOString();
+    return value;
+  };
+  await assert.rejects(assistRequest({ ...f, request }), /post-receipt timeline/);
+  assert.equal(f.pr.state, "open");
+  assert.equal(f.writes.length, 2);
 });
