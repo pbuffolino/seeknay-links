@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { githubRequest, safeDependencyPR, safeDependencyScope } from "./merge-dependabot.mjs";
 import { ownedIntent, recoverablePRs, refreshNative } from "./native-dependabot-refresh.mjs";
+import { closeObsolete } from "./obsolete-dependabot.mjs";
 
 const repository = "pbuffolino/seeknay-links";
 const shaPattern = /^[a-f0-9]{40}$/;
@@ -199,7 +200,9 @@ async function main() {
     await output("number", pr.number);
     await output("count", 1);
   } else if (mode === "refresh") {
-    await refreshNative();
+    const obsolete = await closeObsolete();
+    await output("obsolete", obsolete);
+    if (!obsolete) await refreshNative();
   } else if (mode === "classify") {
     const eligible = await classify();
     await output("eligible", eligible);

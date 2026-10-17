@@ -38,6 +38,18 @@ to report within a 90-minute maintenance budget. Failed candidates do not cancel
 the batch. Verified major upgrades are recorded for review and skipped; unknown metadata,
 invalid signatures, changed heads, and unexpected scopes fail closed.
 
+Before requesting a refresh, the reconciler can close an untouched signed patch/minor npm
+update that is already applied. It reads the original signed commit's sole parent, proposed
+head, and current protected main JSON as data, without executing PR code or installing PR
+dependencies. Every requested change in every original changed JSON file must be satisfied.
+Changed lockfile package entries must match completely, including resolved URLs, integrity,
+flags, and metadata. Matching a version alone is insufficient. Unrelated main changes do not
+count as satisfying a requested change. Empty/format-only deltas are not automatically closed.
+Main CI, CodeQL, and Pages must already be verified. Complete eligibility,
+JSON comparisons, main health, and live head/base are rechecked before closure; resulting
+closed/unmerged/head/base state must verify. The receipt records `ALREADY APPLIED`, never a
+merge. Unknown or incomplete evidence leaves the PR for review. No branch or review is changed.
+
 Refresh uses native close/reopen with the existing `pull-requests: write` permission. Before
 closing an eligible signed patch/minor PR, the reconciler adds the reserved
 `dependency-refresh-intent` label and an attempt label binding the PR number, full head SHA,

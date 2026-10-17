@@ -62,12 +62,19 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      actions: read
+      security-events: read
+      deployments: read
+      pages: read
+    outputs:
+      obsolete: ${{ steps.refresh.outputs.obsolete }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/heads/main
           persist-credentials: false
-      - run: node scripts/reconcile-dependabot.mjs refresh
+      - id: refresh
+        run: node scripts/reconcile-dependabot.mjs refresh
         env:
           GH_TOKEN: ${{ github.token }}
           DEPENDABOT_PR: ${{ inputs.number }}
@@ -76,6 +83,7 @@ jobs:
 
   metadata:
     needs: refresh
+    if: needs.refresh.outputs.obsolete != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
