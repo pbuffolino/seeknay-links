@@ -9,9 +9,6 @@ on:
       deadline:
         required: true
         type: string
-      allow-rebase:
-        required: true
-        type: boolean
 
 permissions:
   contents: read
@@ -76,7 +73,6 @@ jobs:
           DEPENDABOT_PR: ${{ inputs.number }}
           DEPENDABOT_SHA: ${{ needs.inspect.outputs.sha }}
           DEPENDABOT_METADATA: ${{ needs.inspect.outputs.dependencies }}
-          DEPENDABOT_REBASE_COMMENTS_APPROVED: ${{ inputs.allow-rebase && vars.DEPENDABOT_REBASE_COMMENTS_APPROVED == 'true' && 'true' || 'false' }}
 
   metadata:
     needs: refresh

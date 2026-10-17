@@ -27,7 +27,11 @@ export async function githubRequest(...args) {
   } catch (error) {
     const status = error.stderr?.match(/HTTP (\d{3})/)?.[1];
     // Never emit response bodies, environment variables, or credential-bearing logs.
-    throw new Error(`GitHub request failed${status ? ` (HTTP ${status})` : ""}`, { cause: error });
+    const failure = new Error(`GitHub request failed${status ? ` (HTTP ${status})` : ""}`, {
+      cause: error,
+    });
+    failure.status = status ? Number(status) : undefined;
+    throw failure;
   }
 }
 

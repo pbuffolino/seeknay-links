@@ -38,13 +38,26 @@ to report within a 90-minute maintenance budget. Failed candidates do not cancel
 the batch. Verified major upgrades are recorded for review and skipped; unknown metadata,
 invalid signatures, changed heads, and unexpected scopes fail closed.
 
-Public `@dependabot rebase` comments require explicit owner authorization and the repository
-variable `DEPENDABOT_REBASE_COMMENTS_APPROVED` set to exactly `true`. Leave it unset until
-approved. Dispatch inputs and PR contents cannot enable it. Requests are deduplicated by
-PR/head/base for the lifetime of the comment, with at most two requests per PR/base revision.
-An unchanged pending head is never reposted. Incomplete comment history stops writes.
+Refresh uses native close/reopen with the existing `pull-requests: write` permission. Before
+closing an eligible signed patch/minor PR, the reconciler adds the reserved
+`dependency-refresh-intent` label and an attempt label binding the PR number, full head SHA,
+full base SHA, and attempt number. It reopens in a `finally` path and removes only its own
+markers after verifying the PR is open. Existing labels, reviews, and branches are preserved.
+Subsequent sweeps prioritize interrupted refreshes, but recover a closed PR only when its
+unchanged signed head remains eligible and label/closure events authenticate GitHub Actions
+ownership. Unmarked PRs, human closures, merged PRs, and obsolete updates closed by Dependabot
+are never reopened. Incomplete or conflicting evidence requires review.
+
+Persistent label definitions and timeline evidence bound attempts to at most two per PR/base.
+An unchanged PR/head/base is never requested twice, and changed heads wait at least ten minutes
+between requests. Keep reserved label definitions as attempt evidence after removing their
+PR attachments. Public rebase comments remain disabled in scheduled/manual/event workflows;
+the legacy comment helper still requires explicit owner approval and its separate repository
+variable, which must remain unset.
 The reconciler never rebases or adds commits itself. A changed head always goes through fresh
 signature, metadata, scope, CI, CodeQL, and native protection checks before merging.
+[Dependabot rebase triggers](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#rebase-strategy),
+[PR labels and permissions](https://docs.github.com/en/rest/issues/labels#add-labels-to-an-issue).
 
 Metadata collection runs with read-only permissions. A small Node preload supplies a fresh
 REST-fetched PR payload to the immutable `dependabot/fetch-metadata` action before its context

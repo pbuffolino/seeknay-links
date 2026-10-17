@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { githubRequest, safeDependencyPR, safeDependencyScope } from "./merge-dependabot.mjs";
+import { ownedIntent, recoverablePRs, refreshNative } from "./native-dependabot-refresh.mjs";
 
 const repository = "pbuffolino/seeknay-links";
 const shaPattern = /^[a-f0-9]{40}$/;
@@ -35,12 +36,12 @@ export function candidates(prs, now = Date.now()) {
 export async function prepare({ env = process.env, request = githubRequest } = {}) {
   const root = target(env);
   const pr = await request("api", `${root}/pulls/${env.DEPENDABOT_PR}`);
-  return snapshot(pr);
+  return snapshot(pr, pr.state === "closed" && Boolean(await ownedIntent(pr, request)));
 }
 
-function snapshot(pr) {
+function snapshot(pr, recovery = false) {
   if (
-    pr.state !== "open" ||
+    (pr.state !== "open" && !(recovery && pr.state === "closed")) ||
     pr.draft ||
     pr.user?.login !== "dependabot[bot]" ||
     pr.base?.ref !== "main" ||
@@ -80,11 +81,13 @@ export async function classify({ env = process.env, request = githubRequest } = 
   const files = await request("api", `${root}/pulls/${env.DEPENDABOT_PR}/files?per_page=100`);
   const commits = await request("api", `${root}/pulls/${env.DEPENDABOT_PR}/commits?per_page=100`);
   const dependencies = JSON.parse(env.DEPENDABOT_METADATA || "null");
-  if (!safeDependencyScope(pr, files, commits, repository, env.DEPENDABOT_SHA, dependencies))
+  const recovery = pr.state === "closed" && Boolean(await ownedIntent(pr, request));
+  const candidate = recovery ? { ...pr, state: "open" } : pr;
+  if (!safeDependencyScope(candidate, files, commits, repository, env.DEPENDABOT_SHA, dependencies))
     throw new Error(
       "Dependency classification failed identity, signature, metadata, or scope guard"
     );
-  return safeDependencyPR(pr, files, commits, repository, env.DEPENDABOT_SHA, dependencies);
+  return safeDependencyPR(candidate, files, commits, repository, env.DEPENDABOT_SHA, dependencies);
 }
 
 export async function refresh({
@@ -166,7 +169,11 @@ async function main() {
       "api",
       `repos/${repository}/pulls?state=open&base=main&per_page=100`
     );
-    const batch = candidates(prs);
+    const recovering = await recoverablePRs();
+    const batch = [
+      ...recovering.map((number) => ({ number })),
+      ...candidates(prs).filter((pr) => !recovering.includes(pr.number)),
+    ].slice(0, 6);
     await output("matrix", JSON.stringify({ include: batch }));
     await output("count", batch.length);
     if (batch.length) await output("number", batch[0].number);
@@ -192,7 +199,7 @@ async function main() {
     await output("number", pr.number);
     await output("count", 1);
   } else if (mode === "refresh") {
-    await refresh();
+    await refreshNative();
   } else if (mode === "classify") {
     const eligible = await classify();
     await output("eligible", eligible);
