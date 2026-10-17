@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { parseGitHubResponse, safeGitHubFailure } from "./github-response.mjs";
 
 const exec = promisify(execFile);
 export const requiredChecks = [
@@ -15,25 +16,42 @@ export const requiredChecks = [
 ];
 const updateTypes = ["version-update:semver-patch", "version-update:semver-minor"];
 
-export async function githubRequest(...args) {
-  if (process.env.DEPENDENCY_DEADLINE) {
-    const deadline = Number(process.env.DEPENDENCY_DEADLINE);
-    if (!Number.isSafeInteger(deadline) || deadline <= Date.now())
-      throw new Error("Dependency maintenance budget exhausted");
-  }
-  try {
-    const { stdout } = await exec("gh", args, { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
-    return stdout.trim() ? JSON.parse(stdout) : null;
-  } catch (error) {
-    const status = error.stderr?.match(/HTTP (\d{3})/)?.[1];
-    // Never emit response bodies, environment variables, or credential-bearing logs.
-    const failure = new Error(`GitHub request failed${status ? ` (HTTP ${status})` : ""}`, {
-      cause: error,
-    });
-    failure.status = status ? Number(status) : undefined;
-    throw failure;
-  }
+export function createGitHubRequest(run = exec) {
+  return async (...args) => {
+    if (process.env.DEPENDENCY_DEADLINE) {
+      const deadline = Number(process.env.DEPENDENCY_DEADLINE);
+      if (!Number.isSafeInteger(deadline) || deadline <= Date.now())
+        throw new Error("Dependency maintenance budget exhausted");
+    }
+    try {
+      const { stdout } = await run("gh", [args[0], "--include", ...args.slice(1)], {
+        timeout: 60000,
+        maxBuffer: 4 * 1024 * 1024,
+      });
+      return parseGitHubResponse(stdout).data;
+    } catch (error) {
+      let response;
+      try {
+        response = parseGitHubResponse(error.stdout);
+      } catch {
+        // An absent or malformed response never permits arbitrary output.
+      }
+      const status =
+        response?.status || Number(error.stderr?.match(/HTTP (\d{3})/)?.[1]) || undefined;
+      const diagnostic = safeGitHubFailure(args, response);
+      // Never emit response bodies, environment variables, or credential-bearing logs.
+      const failure = new Error(
+        `GitHub request failed${status ? ` (HTTP ${status})` : ""} ${JSON.stringify(diagnostic)}`,
+        {
+          cause: error,
+        }
+      );
+      failure.status = status ? Number(status) : undefined;
+      throw failure;
+    }
+  };
 }
+export const githubRequest = createGitHubRequest();
 
 export function onlyActionPins(file, sameMajor = true) {
   if (!/^\.github\/workflows\/[\w-]+\.ya?ml$/.test(file.filename) || !file.patch) return false;
