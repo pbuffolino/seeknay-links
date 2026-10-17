@@ -29,8 +29,7 @@ The merge request includes the expected head SHA and does not bypass protection.
 checks ancestry against the latest base revision immediately before merging, in addition to
 native strict protection. Its token reads the public branch summary rather than requiring
 administration access.
-The job
-stops after twelve minutes if checks, review requirements, or branch freshness block it.
+It stops after twelve minutes if checks, review requirements, or branch freshness block it.
 Dependabot can rebase an outdated PR; inspect failed publisher runs rather than bypassing CI.
 [GitHub Dependabot automation guidance](https://docs.github.com/en/code-security/tutorials/secure-your-dependencies/automate-dependabot-with-actions).
 
@@ -41,6 +40,9 @@ after verifying the merged revision. Do not revert a valid security fix just bec
 failed. [Workflow trigger behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
 
 ## Continuous checks
+
+The metrics publisher approves and waits for both CI and CodeQL on its verified metrics-only
+PR. Workflow identity, PR identity, branch, and SHA must all match before approving a run.
 
 CI runs on pull requests, pushes to `main`, manual dispatch, and a daily schedule. The npm audit
 blocks all reported vulnerability severities, including development dependencies. Dependency

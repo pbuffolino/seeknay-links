@@ -16,13 +16,13 @@ async function gh(...args) {
     });
   }
 }
-export function matchingRun(runs, sha, number) {
+export function matchingRun(runs, sha, number, workflowPath = ".github/workflows/ci.yml") {
   return runs.find(
     (run) =>
       run.head_sha === sha &&
       run.head_branch === branch &&
       run.event === "pull_request" &&
-      run.path === ".github/workflows/ci.yml" &&
+      run.path === workflowPath &&
       run.pull_requests?.some((pr) => pr.number === Number(number))
   );
 }
@@ -59,30 +59,44 @@ export async function publishMetrics({
   console.log("Waiting for pull-request CI for the verified metrics commit");
   const deadline = startedAt + 10 * 60 * 1000;
   let run;
+  let codeql;
   const approvedRuns = new Set();
   while (Date.now() < deadline) {
     const response = JSON.parse(
       await gh(
         "api",
-        `repos/${repo}/actions/workflows/ci.yml/runs?branch=${branch}&event=pull_request&per_page=100`
+        `repos/${repo}/actions/runs?branch=${branch}&event=pull_request&head_sha=${pr.head.sha}&per_page=100`
       )
     );
     run = matchingRun(response.workflow_runs, pr.head.sha, number);
-    if (run?.conclusion === "action_required") {
+    codeql = matchingRun(
+      response.workflow_runs,
+      pr.head.sha,
+      number,
+      ".github/workflows/codeql.yml"
+    );
+    for (const candidate of [run, codeql]) {
+      if (candidate?.conclusion !== "action_required") continue;
       // Only the same-repository, metrics-only PR passed the guard above.
-      if (!approvedRuns.has(run.id)) {
+      if (!approvedRuns.has(candidate.id)) {
         await verifyUnchangedPR();
-        await gh("api", "--method", "POST", `repos/${repo}/actions/runs/${run.id}/approve`);
-        approvedRuns.add(run.id);
-        console.log("Approved CI for the verified metrics-only PR");
+        await gh("api", "--method", "POST", `repos/${repo}/actions/runs/${candidate.id}/approve`);
+        approvedRuns.add(candidate.id);
+        console.log("Approved a required workflow for the verified metrics-only PR");
       }
-      run = undefined;
     }
-    if (run?.status === "completed") break;
+    const finished = [run, codeql].every(
+      (candidate) => candidate?.status === "completed" && candidate.conclusion !== "action_required"
+    );
+    if (finished) break;
     await new Promise((resolve) => setTimeout(resolve, 10000));
   }
-  if (run?.status !== "completed" || run.conclusion !== "success")
-    throw new Error("Metrics commit CI did not succeed");
+  if (
+    ![run, codeql].every(
+      (candidate) => candidate?.status === "completed" && candidate.conclusion === "success"
+    )
+  )
+    throw new Error("Metrics commit CI or CodeQL did not succeed");
   console.log("CI passed for metrics commit; requesting protected merge");
   await verifyUnchangedPR();
   const result = JSON.parse(

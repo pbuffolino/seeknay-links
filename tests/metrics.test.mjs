@@ -121,6 +121,17 @@ test("publication accepts only the exact PR workflow and trusted metrics-only ch
     pull_requests: [{ number }],
   };
   assert.equal(matchingRun([run], run.head_sha, number), run);
+  const scan = { ...run, path: ".github/workflows/codeql.yml" };
+  assert.equal(matchingRun([scan], run.head_sha, number), undefined);
+  assert.equal(matchingRun([scan], run.head_sha, number, scan.path), scan);
+  assert.equal(
+    matchingRun([{ ...scan, head_sha: "b".repeat(40) }], run.head_sha, number, scan.path),
+    undefined
+  );
+  assert.equal(
+    matchingRun([{ ...scan, pull_requests: [{ number: 999 }] }], run.head_sha, number, scan.path),
+    undefined
+  );
   assert.equal(matchingRun([run], "b".repeat(40), number), undefined);
   assert.equal(matchingRun([run], run.head_sha, number + 1), undefined);
   assert.equal(
