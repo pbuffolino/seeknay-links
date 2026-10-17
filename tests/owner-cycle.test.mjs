@@ -242,6 +242,11 @@ function fixture(closed = false) {
     flags,
     event,
     request,
+    sshRestore: async ({ ref, sha, verifyAbsent }) => {
+      await verifyAbsent();
+      writes.push({ endpoint: "ssh:create-only", args: [`ref=${ref}`, `sha=${sha}`] });
+      flags.missing = false;
+    },
     now: () => start + 10000,
   };
 }
@@ -280,7 +285,7 @@ test("fresh current-run artifact recovers old machine closure and missing signed
   f.event("head_ref_deleted", bot);
   await assistRequest(f);
   assert.equal(f.pr.state, "open");
-  assert(f.writes[0].endpoint.endsWith("/git/refs"));
+  assert.equal(f.writes[0].endpoint, "ssh:create-only");
   assert.deepEqual(
     f.writes
       .filter((w) => w.endpoint.endsWith("/pulls/7"))
@@ -319,7 +324,7 @@ test("owner cycle restores only a deleted absent exact signed branch, never chan
   f.flags.deleteOnClose = true;
   await assistRequest(f);
   assert.equal(f.pr.state, "open");
-  assert.equal(f.writes.filter((w) => w.endpoint.endsWith("/git/refs")).length, 1);
+  assert.equal(f.writes.filter((w) => w.endpoint === "ssh:create-only").length, 1);
   const changed = fixture();
   changed.flags.wrongRef = true;
   changed.pr.state = "closed";
@@ -508,4 +513,42 @@ test("owner grants bound changed-head attempts to two per PR/base with a pending
   pending.value.createdAt = start + 2000;
   await assert.rejects(attachCycleGrant(pending.value, pending.request), /still pending/);
   assert.equal(pending.writes.length, 0);
+});
+
+test("unknown or denied guard reads never trigger SSH, and owner restore makes no REST ref-creation attempt", async () => {
+  for (const status of [403, 404, 429, 500]) {
+    const f = fixture(true);
+    f.flags.missing = true;
+    f.event("head_ref_deleted", bot);
+    let sshCalls = 0;
+    const original = f.request;
+    const request = async (...args) => {
+      if (args.some((a) => a.includes?.("/files?")))
+        throw Object.assign(new Error("guard denied"), { status });
+      return original(...args);
+    };
+    await assert.rejects(
+      assistRequest({
+        ...f,
+        request,
+        sshRestore: async () => {
+          sshCalls++;
+        },
+      })
+    );
+    assert.equal(sshCalls, 0);
+    assert.equal(f.writes.length, 0);
+  }
+  const f = fixture(true);
+  f.flags.missing = true;
+  f.event("head_ref_deleted", bot);
+  const original = f.request;
+  const request = async (...args) => {
+    if (args.includes("POST") && args.some((a) => a.endsWith?.("/git/refs")))
+      throw Object.assign(new Error("unexpected owner REST POST"), { status: 404 });
+    return original(...args);
+  };
+  await assistRequest({ ...f, request });
+  assert.equal(f.pr.state, "open");
+  assert(f.writes.some((w) => w.endpoint === "ssh:create-only"));
 });
