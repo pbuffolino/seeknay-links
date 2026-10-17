@@ -235,7 +235,10 @@ export async function approveDependencyRuns({
 export function successfulScans(analyses, sha) {
   return ["/language:actions", "/language:javascript-typescript"].every((category) => {
     const latest = analyses.find(
-      (analysis) => analysis.category === category && analysis.tool?.name === "CodeQL"
+      (analysis) =>
+        analysis.commit_sha === sha &&
+        analysis.category === category &&
+        analysis.tool?.name === "CodeQL"
     );
     return latest?.commit_sha === sha && latest.error === "" && !latest.warning;
   });
@@ -244,7 +247,10 @@ export function successfulScans(analyses, sha) {
 export function scanProblem(analyses, sha) {
   return ["/language:actions", "/language:javascript-typescript"].some((category) => {
     const latest = analyses.find(
-      (analysis) => analysis.category === category && analysis.tool?.name === "CodeQL"
+      (analysis) =>
+        analysis.commit_sha === sha &&
+        analysis.category === category &&
+        analysis.tool?.name === "CodeQL"
     );
     return latest?.commit_sha === sha && Boolean(latest.error || latest.warning);
   });
