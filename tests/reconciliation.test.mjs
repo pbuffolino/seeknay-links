@@ -285,6 +285,35 @@ test("latest expected CodeQL categories win over older failed attempts on the sa
   );
 });
 
+test("late old-head CodeQL uploads cannot hide exact-head analyses", () => {
+  const analyses = [
+    ...scans(base).map((analysis) => ({ ...analysis, error: "old head failure" })),
+    ...scans(),
+  ];
+  assert.equal(successfulScans(analyses, sha), true);
+  assert.equal(scanProblem(analyses, sha), false);
+});
+
+test("another head or tool cannot supply a missing exact-head CodeQL language", () => {
+  const analyses = [...scans(base), scans()[0], { ...scans()[1], tool: { name: "Other" } }];
+  assert.equal(successfulScans(analyses, sha), false);
+  assert.equal(scanProblem(analyses, sha), false);
+});
+
+test("latest same-head CodeQL errors and warnings block older successes", () => {
+  for (const category of categories) {
+    for (const failure of [{ error: "current failure" }, { warning: "current warning" }]) {
+      const analyses = [
+        ...scans(base),
+        { ...scans().find((analysis) => analysis.category === category), ...failure },
+        ...scans(),
+      ];
+      assert.equal(successfulScans(analyses, sha), false);
+      assert.equal(scanProblem(analyses, sha), true);
+    }
+  }
+});
+
 function publicationFixture() {
   const writes = [];
   let runs = true,
