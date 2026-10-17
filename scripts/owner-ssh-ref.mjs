@@ -40,6 +40,7 @@ export function isolatedGitEnvironment(source, adapter) {
     GIT_SSH: adapter,
     GIT_SSH_VARIANT: "ssh",
     SSH_ASKPASS_REQUIRE: "never",
+    LC_ALL: "C",
   };
 }
 
