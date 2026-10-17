@@ -84,6 +84,21 @@ fail closed. The driver waits for backend completion; its receipt is not a subst
 independently verifying merges, main CI/CodeQL, Pages and live resources. Keep the local host
 available for the whole assisted run. No owner driver is needed for a fresh eligible head.
 
+Dependabot may delete a bot head while its machine-owned PR is closed. Recovery may recreate
+only an absent exact `refs/heads/dependabot/...` reference at the original verified signed SHA,
+using GitHub's native create-reference API. It never updates or force-pushes an existing ref,
+creates a commit, or writes main. Full eligibility, authenticated closure/intent, a subsequent
+Dependabot deletion event, protected base/ancestry, and unchanged closure/base are required.
+The restored ref must read back at the exact signed SHA before reopening. Changed existing
+refs, human/obsolete closures, and repeated deletions require review. The refresh job reuses
+the publisher's existing contents-write capability for this bounded recovery; the owner
+helper uses existing authentication. `finally` and later sweeps can recover a deleted owned
+branch even after request expiry. An expired artifact never authorizes owner assistance;
+recovery first verifies/open-cleans the old intent, then an assisted run can stage a new
+request against current main. Obsolete PRs closed without refresh intent remain closed,
+including any branches Dependabot deleted for them.
+[GitHub native reference creation](https://docs.github.com/en/rest/git/refs#create-a-reference).
+
 Persistent label definitions and timeline evidence bound attempts to at most two per PR/base.
 An unchanged PR/head/base is never requested twice, and changed heads wait at least ten minutes
 between requests. Keep reserved label definitions as attempt evidence after removing their
