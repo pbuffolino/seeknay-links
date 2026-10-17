@@ -111,4 +111,3 @@ jobs:
     with:
       number: ${{ matrix.number }}
       deadline: ${{ needs.recover-publication.outputs.deadline }}
-      allow-rebase: ${{ vars.DEPENDABOT_REBASE_COMMENTS_APPROVED == 'true' }}
