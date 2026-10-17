@@ -15,7 +15,23 @@ export const requiredChecks = [
 ];
 const updateTypes = ["version-update:semver-patch", "version-update:semver-minor"];
 
-export function onlyActionPins(file) {
+export async function githubRequest(...args) {
+  if (process.env.DEPENDENCY_DEADLINE) {
+    const deadline = Number(process.env.DEPENDENCY_DEADLINE);
+    if (!Number.isSafeInteger(deadline) || deadline <= Date.now())
+      throw new Error("Dependency maintenance budget exhausted");
+  }
+  try {
+    const { stdout } = await exec("gh", args, { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
+    return stdout.trim() ? JSON.parse(stdout) : null;
+  } catch (error) {
+    const status = error.stderr?.match(/HTTP (\d{3})/)?.[1];
+    // Never emit response bodies, environment variables, or credential-bearing logs.
+    throw new Error(`GitHub request failed${status ? ` (HTTP ${status})` : ""}`, { cause: error });
+  }
+}
+
+export function onlyActionPins(file, sameMajor = true) {
   if (!/^\.github\/workflows\/[\w-]+\.ya?ml$/.test(file.filename) || !file.patch) return false;
   const changed = file.patch.split("\n").filter((line) => /^[+-]/.test(line));
   const pins = changed.map((line) =>
@@ -30,13 +46,24 @@ export function onlyActionPins(file) {
     pins.every(Boolean) &&
     pins.every(
       (pin, index) =>
-        index % 2 === 0 || (pin[1] === pins[index - 1][1] && pin[2] === pins[index - 1][2])
+        index % 2 === 0 ||
+        (pin[1] === pins[index - 1][1] && (!sameMajor || pin[2] === pins[index - 1][2]))
     ) &&
     changed.every((line, index) => line[0] === (index % 2 ? "+" : "-"))
   );
 }
 
 export function safeDependencyPR(pr, files, commits, repo, sha, dependencies) {
+  return (
+    Array.isArray(dependencies) &&
+    dependencies.every((dependency) => updateTypes.includes(dependency.updateType)) &&
+    safeDependencyScope(pr, files, commits, repo, sha, dependencies)
+  );
+}
+
+// Classification may recognize a verified major for review. The merge guard above
+// always additionally requires patch/minor metadata for every dependency.
+export function safeDependencyScope(pr, files, commits, repo, sha, dependencies) {
   if (
     repo !== "pbuffolino/seeknay-links" ||
     !/^[a-f0-9]{40}$/.test(sha || "") ||
@@ -59,7 +86,7 @@ export function safeDependencyPR(pr, files, commits, repo, sha, dependencies) {
     !dependencies.length ||
     !dependencies.every(
       (dependency) =>
-        updateTypes.includes(dependency.updateType) &&
+        [...updateTypes, "version-update:semver-major"].includes(dependency.updateType) &&
         dependency.maintainerChanges === false &&
         dependency.directory === "/" &&
         dependency.targetBranch === "main"
@@ -75,7 +102,13 @@ export function safeDependencyPR(pr, files, commits, repo, sha, dependencies) {
       !file.previous_filename &&
       (ecosystem === "npm_and_yarn"
         ? ["package.json", "package-lock.json"].includes(file.filename)
-        : ecosystem === "github_actions" && onlyActionPins(file))
+        : ecosystem === "github_actions" &&
+          onlyActionPins(
+            file,
+            !dependencies.some(
+              (dependency) => dependency.updateType === "version-update:semver-major"
+            )
+          ))
   );
 }
 
@@ -110,7 +143,21 @@ export function successfulScans(analyses, sha) {
   });
 }
 
-export async function mergeDependabot({ env = process.env, request } = {}) {
+export function scanProblem(analyses, sha) {
+  return ["/language:actions", "/language:javascript-typescript"].some((category) => {
+    const latest = analyses.find(
+      (analysis) => analysis.category === category && analysis.tool?.name === "CodeQL"
+    );
+    return latest?.commit_sha === sha && Boolean(latest.error || latest.warning);
+  });
+}
+
+export async function mergeDependabot({
+  env = process.env,
+  request = githubRequest,
+  now = Date.now,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+} = {}) {
   const repo = env.GITHUB_REPOSITORY;
   const number = env.DEPENDABOT_PR;
   const sha = env.DEPENDABOT_SHA;
@@ -121,19 +168,7 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
   )
     throw new Error("Invalid dependency merge target");
   const dependencies = JSON.parse(env.DEPENDABOT_METADATA || "null");
-  const gh =
-    request ||
-    (async (...args) => {
-      try {
-        const { stdout } = await exec("gh", args, { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
-        return stdout.trim() ? JSON.parse(stdout) : null;
-      } catch (error) {
-        const status = error.stderr?.match(/HTTP (\d{3})/)?.[1];
-        throw new Error(`GitHub request failed: ${args[1]}${status ? ` (HTTP ${status})` : ""}`, {
-          cause: error,
-        });
-      }
-    });
+  const gh = request;
   async function verify() {
     const pr = await gh("api", `repos/${repo}/pulls/${number}`);
     const files = await gh("api", `repos/${repo}/pulls/${number}/files?per_page=100`);
@@ -147,8 +182,8 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
   }
   await verify();
   console.log("Verified dependency PR; waiting for exact-commit CI and branch protection");
-  const deadline = Date.now() + 12 * 60 * 1000;
-  while (Date.now() < deadline) {
+  const deadline = now() + 12 * 60 * 1000;
+  while (now() < deadline) {
     const response = await gh(
       "api",
       `repos/${repo}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${sha}&per_page=100`
@@ -164,8 +199,13 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
         "api",
         `repos/${repo}/code-scanning/analyses?ref=refs/pull/${number}/head&tool_name=CodeQL&per_page=100`
       );
-      if (!successfulScans(analyses, sha))
-        throw new Error("Current dependency CodeQL coverage is incomplete");
+      if (scanProblem(analyses, sha))
+        throw new Error("Current dependency CodeQL analysis has errors or coverage warnings");
+      // CI may finish before CodeQL uploads both languages. Missing scans never permit a merge.
+      if (!successfulScans(analyses, sha)) {
+        await sleep(10000);
+        continue;
+      }
       const alerts = await gh(
         "api",
         `repos/${repo}/code-scanning/alerts?ref=refs/pull/${number}/head&state=open&per_page=100`
@@ -187,7 +227,11 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
       );
       if (!result.merged) throw new Error("Protected dependency merge was rejected");
       const merged = await gh("api", `repos/${repo}/pulls/${number}`);
-      if (!merged.merged || merged.head.sha !== sha)
+      if (
+        !merged.merged ||
+        merged.head.sha !== sha ||
+        !/^[a-f0-9]{40}$/.test(merged.merge_commit_sha || "")
+      )
         throw new Error("Cannot verify dependency merge");
       // Explicit dispatch keeps default-branch checks current after a token-authored merge.
       for (const workflow of ["ci.yml", "codeql.yml"])
@@ -202,9 +246,9 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
       // GITHUB_TOKEN merges do not trigger legacy Pages builds. Request publication explicitly.
       await gh("api", "--method", "POST", `repos/${repo}/pages/builds`);
       console.log("Dependency merge verified; Pages build requested");
-      return;
+      return merged.merge_commit_sha;
     }
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+    await sleep(10000);
   }
   throw new Error(
     "Dependency checks or branch freshness did not become mergeable; review required"
@@ -212,8 +256,15 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  mergeDependabot().catch((error) => {
-    console.error(`::error::Dependency merge stopped: ${error.message}`);
-    process.exitCode = 1;
-  });
+  mergeDependabot()
+    .then(async (sha) => {
+      if (process.env.GITHUB_OUTPUT) {
+        const { appendFile } = await import("node:fs/promises");
+        await appendFile(process.env.GITHUB_OUTPUT, `sha=${sha}\n`);
+      }
+    })
+    .catch((error) => {
+      console.error(`::error::Dependency merge stopped: ${error.message}`);
+      process.exitCode = 1;
+    });
 }

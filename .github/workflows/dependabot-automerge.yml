@@ -4,55 +4,107 @@ on:
   pull_request_target:
     branches: ["main"]
     types: [opened, reopened, synchronize, ready_for_review]
+  schedule:
+    - cron: "47 * * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: read
 
+# One backlog processor across event, scheduled, and manual runs. A pending run may
+# be replaced; the next hourly sweep rediscovers all remaining PRs.
 concurrency:
-  group: dependabot-merge-${{ github.event.pull_request.number }}
+  group: ${{ github.event_name == 'pull_request_target' && (github.event.pull_request.user.login != 'dependabot[bot]' || github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.draft) && format('dependency-untrusted-{0}', github.run_id) || 'dependency-reconciliation' }}
   cancel-in-progress: false
 
 jobs:
-  metadata:
-    if: >-
-      github.repository == 'pbuffolino/seeknay-links' &&
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !github.event.pull_request.draft
+  recover-publication:
+    if: github.repository == 'pbuffolino/seeknay-links' && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request_target' && github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.repo.full_name == github.repository && !github.event.pull_request.draft))
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+      pages: write
     outputs:
-      dependencies: ${{ steps.metadata.outputs.updated-dependencies-json }}
-      update-type: ${{ steps.metadata.outputs.update-type }}
+      sha: ${{ steps.request.outputs.sha }}
+      deadline: ${{ steps.request.outputs.deadline }}
     steps:
-      - name: Read verified Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - name: Recover checks and publication from an interrupted merge
+        id: request
+        run: node scripts/dependency-publication.mjs request
+        env:
+          GH_TOKEN: ${{ github.token }}
 
-  merge:
-    needs: metadata
-    if: >-
-      needs.metadata.outputs.update-type == 'version-update:semver-patch' ||
-      needs.metadata.outputs.update-type == 'version-update:semver-minor'
+  verify-main:
+    env:
+      DEPENDENCY_DEADLINE: ${{ needs.recover-publication.outputs.deadline }}
+    needs: recover-publication
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      security-events: read
+      deployments: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.recover-publication.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      # This read-only job is separate from every privileged publisher.
+      - run: npm ci --ignore-scripts
+      - run: node scripts/dependency-publication.mjs verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLICATION_SHA: ${{ needs.recover-publication.outputs.sha }}
+
+  discover:
+    env:
+      DEPENDENCY_DEADLINE: ${{ needs.recover-publication.outputs.deadline }}
+    needs: [verify-main, recover-publication]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      matrix: ${{ steps.prs.outputs.matrix }}
+      count: ${{ steps.prs.outputs.count }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - id: prs
+        run: node scripts/reconcile-dependabot.mjs discover
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  reconcile:
+    needs: [discover, recover-publication]
+    if: needs.discover.outputs.count != '0'
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
     permissions:
       contents: write
       pull-requests: write
       actions: write
       security-events: read
+      deployments: read
       pages: write
-    steps:
-      # This privileged job only runs trusted default-branch code. Never check out the PR.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: refs/heads/main
-          persist-credentials: false
-      - name: Verify, merge through branch protection, and publish
-        run: node scripts/merge-dependabot.mjs
-        env:
-          GH_TOKEN: ${{ github.token }}
-          DEPENDABOT_PR: ${{ github.event.pull_request.number }}
-          DEPENDABOT_SHA: ${{ github.event.pull_request.head.sha }}
-          DEPENDABOT_METADATA: ${{ needs.metadata.outputs.dependencies }}
+    uses: ./.github/workflows/dependabot-reconcile-pr.yml
+    with:
+      number: ${{ matrix.number }}
+      deadline: ${{ needs.recover-publication.outputs.deadline }}
+      allow-rebase: ${{ vars.DEPENDABOT_REBASE_COMMENTS_APPROVED == 'true' }}
