@@ -80,13 +80,13 @@ export function safeDependencyPR(pr, files, commits, repo, sha, dependencies) {
 }
 
 export function protectedBranch(protection) {
+  const checks = protection?.protection?.required_status_checks;
   return (
-    protection?.requiresStatusChecks === true &&
-    protection.requiresStrictStatusChecks === true &&
+    protection?.protected === true &&
+    protection.protection?.enabled === true &&
+    checks?.enforcement_level === "everyone" &&
     requiredChecks.every((name) =>
-      protection.requiredStatusChecks?.some(
-        (check) => check.context === name && check.app?.databaseId === 15368
-      )
+      checks.checks?.some((check) => check.context === name && check.app_id === 15368)
     )
   );
 }
@@ -127,8 +127,9 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
       try {
         const { stdout } = await exec("gh", args, { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
         return JSON.parse(stdout);
-      } catch {
-        throw new Error("GitHub request failed");
+      } catch (error) {
+        const status = error.stderr?.match(/HTTP (\d{3})/)?.[1];
+        throw new Error(`GitHub request failed: ${args[1]}${status ? ` (HTTP ${status})` : ""}`);
       }
     });
   async function verify() {
@@ -137,16 +138,10 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
     const commits = await gh("api", `repos/${repo}/pulls/${number}/commits?per_page=100`);
     if (!safeDependencyPR(pr, files, commits, repo, sha, dependencies))
       throw new Error("Dependency PR failed identity, signature, metadata, or file guard");
-    // GraphQL exposes this read-only rule without requesting an administration-scoped token.
-    const protection = await gh(
-      "api",
-      "graphql",
-      "-f",
-      'query={ repository(owner:"pbuffolino",name:"seeknay-links") { ref(qualifiedName:"refs/heads/main") { branchProtectionRule { requiresStatusChecks requiresStrictStatusChecks requiredStatusChecks { context app { databaseId } } } } } }'
-    );
-    if (!protectedBranch(protection.data?.repository?.ref?.branchProtectionRule))
-      throw new Error("Required branch protection is missing");
-    return pr;
+    // The branch summary needs contents:read, unlike the administration-only protection endpoint.
+    const protection = await gh("api", `repos/${repo}/branches/main`);
+    if (!protectedBranch(protection)) throw new Error("Required branch protection is missing");
+    return { ...pr, verifiedBaseSha: protection.commit.sha };
   }
   await verify();
   console.log("Verified dependency PR; waiting for exact-commit CI and branch protection");
@@ -172,7 +167,10 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
         `repos/${repo}/code-scanning/alerts?ref=refs/pull/${number}/head&state=open&per_page=100`
       );
       if (alerts.length) throw new Error("Dependency PR has unresolved code-scanning alerts");
-      await verify();
+      const final = await verify();
+      const comparison = await gh("api", `repos/${repo}/compare/${final.verifiedBaseSha}...${sha}`);
+      if (comparison.merge_base_commit?.sha !== final.verifiedBaseSha)
+        throw new Error("Dependency branch is behind the current base");
       const result = await gh(
         "api",
         "--method",

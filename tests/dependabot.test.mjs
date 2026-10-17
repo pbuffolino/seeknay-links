@@ -37,12 +37,15 @@ function fixture() {
       },
     ],
     protection: {
-      requiresStatusChecks: true,
-      requiresStrictStatusChecks: true,
-      requiredStatusChecks: requiredChecks.map((context) => ({
-        context,
-        app: { databaseId: 15368 },
-      })),
+      protected: true,
+      commit: { sha: "c".repeat(40) },
+      protection: {
+        enabled: true,
+        required_status_checks: {
+          enforcement_level: "everyone",
+          checks: requiredChecks.map((context) => ({ context, app_id: 15368 })),
+        },
+      },
     },
   };
 }
@@ -139,13 +142,13 @@ test("action updates permit only matched SHA pins in existing workflows", () => 
   delete data.files[0].patch;
   assert.equal(safe(data), false);
 });
-test("requires all named checks from GitHub Actions with strict base freshness", () => {
+test("requires all named checks from GitHub Actions with admin enforcement", () => {
   const data = fixture();
   assert.equal(protectedBranch(data.protection), true);
-  data.protection.requiresStrictStatusChecks = false;
+  data.protection.protection.required_status_checks.enforcement_level = "non_admins";
   assert.equal(protectedBranch(data.protection), false);
-  data.protection.requiresStrictStatusChecks = true;
-  data.protection.requiredStatusChecks[0].app = null;
+  data.protection.protection.required_status_checks.enforcement_level = "everyone";
+  data.protection.protection.required_status_checks.checks[0].app_id = null;
   assert.equal(protectedBranch(data.protection), false);
 });
 test("CI match binds workflow, PR number, event, and exact head", () => {
@@ -185,6 +188,7 @@ test("requires both current CodeQL analyses without errors or coverage warnings"
 test("merges by SHA only after guards and successful CI, then requests Pages publication", async () => {
   const data = fixture();
   const writes = [];
+  let comparisonBase = "c".repeat(40);
   const env = {
     GITHUB_REPOSITORY: repo,
     DEPENDABOT_PR: "123",
@@ -208,8 +212,8 @@ test("merges by SHA only after guards and successful CI, then requests Pages pub
     if (endpoint.includes("/code-scanning/alerts?")) return [];
     if (endpoint.endsWith("/files?per_page=100")) return data.files;
     if (endpoint.endsWith("/commits?per_page=100")) return data.commits;
-    if (endpoint === "graphql")
-      return { data: { repository: { ref: { branchProtectionRule: data.protection } } } };
+    if (endpoint.endsWith("/branches/main")) return data.protection;
+    if (endpoint.includes("/compare/")) return { merge_base_commit: { sha: comparisonBase } };
     if (endpoint.includes("/runs?"))
       return {
         workflow_runs: [
@@ -230,6 +234,10 @@ test("merges by SHA only after guards and successful CI, then requests Pages pub
   assert(writes[0].includes(`sha=${sha}`));
   assert(writes[1].includes(`repos/${repo}/pages/builds`));
   writes.length = 0;
+  comparisonBase = "b".repeat(40);
+  await assert.rejects(mergeDependabot({ env, request }), /behind the current base/);
+  assert.equal(writes.length, 0);
+  comparisonBase = "c".repeat(40);
   data.commits[0].commit.verification.verified = false;
   await assert.rejects(mergeDependabot({ env, request }), /guard/);
   assert.equal(writes.length, 0);
@@ -250,8 +258,8 @@ test("a code-scanning alert or failed CI prevents every write", async () => {
       throw new Error("Unexpected write");
     }
     const endpoint = args[1];
-    if (endpoint === "graphql")
-      return { data: { repository: { ref: { branchProtectionRule: data.protection } } } };
+    if (endpoint.endsWith("/branches/main")) return data.protection;
+    if (endpoint.includes("/compare/")) return { merge_base_commit: { sha: "c".repeat(40) } };
     if (endpoint.includes("/files?")) return data.files;
     if (endpoint.includes("/commits?")) return data.commits;
     if (endpoint.includes("/analyses?"))

@@ -21,11 +21,15 @@ CI runs separately without repository secrets. Keep commit verification enabled 
 [GitHub workflow security guidance](https://docs.github.com/en/actions/reference/security/secure-use).
 
 Before merging, the publisher requires successful pull-request CI for the exact PR head and
-strict branch protection with `lint`, `link-check`, `security-audit`, `browser-test`, and
+branch protection with `lint`, `link-check`, `security-audit`, `browser-test`, and
 `dependency-review`, `Analyze (actions)`, and `Analyze (javascript-typescript)` checks from
 GitHub Actions. It also verifies both CodeQL analyses belong to the exact PR head, have no
 coverage warnings, and have no unresolved alerts on the PR reference. Additional native protections still apply.
 The merge request includes the expected head SHA and does not bypass protection. The job
+checks ancestry against the latest base revision immediately before merging, in addition to
+native strict protection. Its token reads the public branch summary rather than requiring
+administration access.
+The job
 stops after twelve minutes if checks, review requirements, or branch freshness block it.
 Dependabot can rebase an outdated PR; inspect failed publisher runs rather than bypassing CI.
 [GitHub Dependabot automation guidance](https://docs.github.com/en/code-security/tutorials/secure-your-dependencies/automate-dependabot-with-actions).
@@ -43,16 +47,17 @@ blocks all reported vulnerability severities, including development dependencies
 review blocks newly introduced vulnerable dependencies on PRs. Installs disable package
 lifecycle scripts. This project currently needs none for its test tools.
 
-Keep CodeQL default setup enabled for JavaScript/TypeScript and GitHub Actions. Check that
+Keep the explicit CodeQL workflow enabled for JavaScript/TypeScript and GitHub Actions. Check that
 both languages actually produce successful analyses; enabled settings alone do not prove
 coverage. Require their checks in branch protection after the initial scans succeed. Keep
-the CodeQL merge protection ruleset active. GitHub exempts Dependabot PRs using default setup
-from that ruleset, so the publisher separately checks analyses and alerts before merging.
+the CodeQL merge protection ruleset active. The workflow scans every pull request, including
+dependency updates, without running a repository build or install. It uploads same-repository
+PR results against the exact head. The publisher separately checks analyses and alerts before merging.
 [Code scanning merge protection limitations](https://docs.github.com/en/code-security/concepts/code-scanning/merge-protection).
 Secret
 scanning and push protection must remain enabled. Keep the Actions default token read-only,
 third-party actions restricted, and full SHA pinning required.
-[CodeQL default setup](https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/configure-code-scanning/configure-code-scanning).
+[CodeQL and Dependabot permissions](https://docs.github.com/en/code-security/reference/code-scanning/troubleshoot-analysis-errors/resource-not-accessible).
 
 ## Weekly review
 
