@@ -129,7 +129,9 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
         return JSON.parse(stdout);
       } catch (error) {
         const status = error.stderr?.match(/HTTP (\d{3})/)?.[1];
-        throw new Error(`GitHub request failed: ${args[1]}${status ? ` (HTTP ${status})` : ""}`);
+        throw new Error(`GitHub request failed: ${args[1]}${status ? ` (HTTP ${status})` : ""}`, {
+          cause: error,
+        });
       }
     });
   async function verify() {
