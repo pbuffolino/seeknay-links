@@ -538,6 +538,35 @@ test("a later machine recovery restores its bot-deleted signed ref before reopen
   assert(f.writes[restore].args.includes(`sha=${head}`));
 });
 
+test("an assisted sweep recovers the old closed intent before staging against advanced protected main", async () => {
+  const f = fixture();
+  f.addIntent();
+  f.pr.state = "closed";
+  f.event("closed");
+  const nextBase = "e".repeat(40),
+    original = f.request;
+  const request = async (...args) => {
+    const endpoint = args.find((arg) => arg.startsWith?.("repos/"));
+    if (endpoint.endsWith("/branches/main")) {
+      const value = await original(...args);
+      return { ...value, commit: { sha: nextBase } };
+    }
+    if (endpoint.includes(`/compare/${base}...${nextBase}`))
+      return { merge_base_commit: { sha: base } };
+    return original(...args);
+  };
+  const staged = await refreshNative({ ...f, request, phase: "stage", ownerAssisted: true });
+  assert.equal(staged.status, "staged");
+  assert.equal(staged.intent.base, nextBase);
+  assert.equal(f.pr.state, "open");
+  assert.deepEqual(
+    f.writes
+      .filter((write) => write.method === "PATCH")
+      .map((write) => write.args.find((arg) => arg.startsWith?.("state="))),
+    ["state=open"]
+  );
+});
+
 test("a new head during owner reopening keeps markers until fresh metadata verifies cleanup", async () => {
   const f = fixture();
   const staged = await refreshNative({ ...f, phase: "stage", ownerAssisted: true });
