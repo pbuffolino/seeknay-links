@@ -225,6 +225,18 @@ test("real Git porcelain proves empty-expected leases create absent refs and rej
       ]);
     assert(createdRefReceipt(push(), first, ref));
     assert(!createdRefReceipt(push(), first, ref)); // Git can report an identical ref as up to date.
+    // Even an ordinary fast-forward must fail when the expected destination is absent.
+    assert.throws(() =>
+      run([
+        `--git-dir=${source}`,
+        "push",
+        "--porcelain",
+        `--force-with-lease=${ref}:`,
+        destination,
+        `${second}:${ref}`,
+      ])
+    );
+    assert.equal(run([`--git-dir=${destination}`, "rev-parse", ref]).trim(), first);
     run([`--git-dir=${source}`, "push", destination, `${second}:${ref}`]);
     assert.throws(push);
     assert.equal(run([`--git-dir=${destination}`, "rev-parse", ref]).trim(), second);
