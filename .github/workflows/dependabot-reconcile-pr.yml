@@ -9,6 +9,9 @@ on:
       deadline:
         required: true
         type: string
+      owner-assisted:
+        required: true
+        type: boolean
 
 permissions:
   contents: read
@@ -58,32 +61,49 @@ jobs:
     needs: inspect
     if: needs.inspect.outputs.eligible == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 10
+    env:
+      DEPENDABOT_OWNER_ASSISTED: ${{ inputs.owner-assisted && 'true' || 'false' }}
+      GH_TOKEN: ${{ github.token }}
+      DEPENDABOT_PR: ${{ inputs.number }}
+      DEPENDABOT_SHA: ${{ needs.inspect.outputs.sha }}
+      DEPENDABOT_METADATA: ${{ needs.inspect.outputs.dependencies }}
     permissions:
       contents: read
       pull-requests: write
-      actions: read
+      actions: write
       security-events: read
       deployments: read
       pages: read
     outputs:
       obsolete: ${{ steps.refresh.outputs.obsolete }}
+      status: ${{ steps.refresh.outputs.status }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/heads/main
           persist-credentials: false
       - id: refresh
-        run: node scripts/reconcile-dependabot.mjs refresh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          DEPENDABOT_PR: ${{ inputs.number }}
-          DEPENDABOT_SHA: ${{ needs.inspect.outputs.sha }}
-          DEPENDABOT_METADATA: ${{ needs.inspect.outputs.dependencies }}
+        run: node scripts/reconcile-dependabot.mjs stage-refresh
+      - name: Upload owner refresh request
+        id: upload
+        if: steps.refresh.outputs.status == 'staged'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dependency-refresh-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.number }}
+          path: ${{ runner.temp }}/dependency-refresh/refresh-request.json
+          retention-days: 1
+          if-no-files-found: error
+      - id: finish
+        if: steps.refresh.outputs.status == 'staged'
+        run: node scripts/reconcile-dependabot.mjs finish-refresh
+      - name: Restore interrupted refresh if upload or handoff failed
+        if: always() && steps.refresh.outputs.status == 'staged' && steps.finish.outcome != 'success'
+        run: node scripts/reconcile-dependabot.mjs cleanup-refresh
 
   metadata:
     needs: refresh
-    if: needs.refresh.outputs.obsolete != 'true'
+    if: needs.refresh.outputs.obsolete != 'true' && needs.refresh.outputs.status != 'deferred'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -138,7 +158,9 @@ jobs:
           persist-credentials: false
       - name: Merge exact verified head through native protection
         id: merge
-        run: node scripts/merge-dependabot.mjs
+        run: |
+          node scripts/reconcile-dependabot.mjs cleanup-refresh
+          node scripts/merge-dependabot.mjs
         env:
           GH_TOKEN: ${{ github.token }}
           DEPENDABOT_PR: ${{ inputs.number }}

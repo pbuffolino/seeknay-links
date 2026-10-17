@@ -138,6 +138,82 @@ export function matchingCI(runs, sha, number) {
   );
 }
 
+export function matchingDependencyRun(runs, pr, number, workflowPath) {
+  return runs.find(
+    (run) =>
+      Number.isSafeInteger(run.id) &&
+      run.id > 0 &&
+      run.repository?.full_name === "pbuffolino/seeknay-links" &&
+      run.head_sha === pr.head.sha &&
+      run.head_branch === pr.head.ref &&
+      run.event === "pull_request" &&
+      run.path === workflowPath &&
+      run.pull_requests?.length === 1 &&
+      run.pull_requests[0].number === Number(number)
+  );
+}
+
+// Callers supply their complete signature/metadata/scope verifier. No PR code runs
+// here; approvals only start the two known read-only CI/CodeQL workflows.
+export async function approveDependencyRuns({
+  request = githubRequest,
+  verify,
+  number,
+  approvedRuns = new Set(),
+}) {
+  const pr = await verify();
+  const root = "repos/pbuffolino/seeknay-links";
+  if (
+    pr.state !== "open" ||
+    pr.draft ||
+    pr.merged === true ||
+    pr.user?.login !== "dependabot[bot]" ||
+    pr.head?.repo?.full_name !== "pbuffolino/seeknay-links" ||
+    pr.base?.repo?.full_name !== "pbuffolino/seeknay-links"
+  )
+    throw new Error("Dependency is not open and eligible for workflow approval");
+  const response = await request(
+    "api",
+    `${root}/actions/runs?event=pull_request&head_sha=${pr.head.sha}&per_page=100`
+  );
+  if (!Array.isArray(response.workflow_runs) || response.workflow_runs.length >= 100)
+    throw new Error("Incomplete dependency workflow history");
+  const runs = [];
+  for (const name of ["ci.yml", "codeql.yml"]) {
+    const workflowPath = `.github/workflows/${name}`;
+    const candidate = matchingDependencyRun(response.workflow_runs, pr, number, workflowPath);
+    runs.push(candidate);
+    if (
+      candidate?.status !== "completed" ||
+      candidate.conclusion !== "action_required" ||
+      approvedRuns.has(candidate.id)
+    )
+      continue;
+    const current = await verify();
+    const protection = await request("api", `${root}/branches/main`);
+    if (
+      current.state !== "open" ||
+      current.draft ||
+      current.merged === true ||
+      current.head.sha !== pr.head.sha ||
+      current.head.ref !== pr.head.ref ||
+      !protectedBranch(protection)
+    )
+      throw new Error("Dependency or native protection changed before workflow approval");
+    const detail = await request("api", `${root}/actions/runs/${candidate.id}`);
+    if (
+      !matchingDependencyRun([detail], current, number, workflowPath) ||
+      detail.id !== candidate.id
+    )
+      throw new Error("Dependency workflow identity changed before approval");
+    if (detail.status !== "completed" || detail.conclusion !== "action_required") continue;
+    await request("api", "--method", "POST", `${root}/actions/runs/${candidate.id}/approve`);
+    approvedRuns.add(candidate.id);
+    console.log(`Approved exact verified dependency workflow: ${name}`);
+  }
+  return { ci: runs[0], codeql: runs[1] };
+}
+
 export function successfulScans(analyses, sha) {
   return ["/language:actions", "/language:javascript-typescript"].every((category) => {
     const latest = analyses.find(
@@ -187,18 +263,30 @@ export async function mergeDependabot({
   await verify();
   console.log("Verified dependency PR; waiting for exact-commit CI and branch protection");
   const deadline = now() + 12 * 60 * 1000;
+  const approvedRuns = new Set();
   while (now() < deadline) {
-    const response = await gh(
-      "api",
-      `repos/${repo}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${sha}&per_page=100`
-    );
-    const run = matchingCI(response.workflow_runs, sha, number);
-    if (run?.status === "completed" && run.conclusion !== "success")
+    const { ci: run, codeql } = await approveDependencyRuns({
+      request: gh,
+      verify,
+      number,
+      approvedRuns,
+    });
+    if (
+      [run, codeql].some(
+        (candidate) =>
+          candidate?.status === "completed" &&
+          !["success", "action_required"].includes(candidate.conclusion)
+      )
+    )
       throw new Error("Dependency CI did not succeed");
     const current = await verify();
     // A running publisher is itself a pending, non-required check, reported as "unstable".
     // The protected merge API still enforces every required check and review.
-    if (run?.conclusion === "success" && ["clean", "unstable"].includes(current.mergeable_state)) {
+    if (
+      run?.conclusion === "success" &&
+      codeql?.conclusion === "success" &&
+      ["clean", "unstable"].includes(current.mergeable_state)
+    ) {
       const analyses = await gh(
         "api",
         `repos/${repo}/code-scanning/analyses?ref=refs/pull/${number}/head&tool_name=CodeQL&per_page=100`

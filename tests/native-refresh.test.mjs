@@ -160,6 +160,7 @@ function fixture() {
     event,
     addIntent,
     request,
+    approve: async () => {},
     now: () => time,
     sleep: async (ms) => {
       time += ms;
@@ -403,6 +404,121 @@ test("a nearly exhausted budget never closes a dependency PR", async () => {
   f.env.DEPENDENCY_DEADLINE = String(f.now() + 1000);
   await assert.rejects(refreshNative(f), /Insufficient maintenance budget/);
   assert.equal(f.writes.length, 0);
+});
+
+test("refresh polling approves only while the same verified head remains open", async () => {
+  const f = fixture();
+  let approvals = 0;
+  f.approve = async ({ verify, number, approvedRuns }) => {
+    const current = await verify();
+    assert.equal(current.state, "open");
+    assert.equal(current.head.sha, head);
+    assert.equal(number, 7);
+    assert(approvedRuns instanceof Set);
+    approvals++;
+  };
+  assert.equal(await refreshNative(f), next);
+  assert.equal(approvals, 1);
+});
+
+test("default sweeps defer stale heads without label or state churn", async () => {
+  const f = fixture();
+  assert.deepEqual(await refreshNative({ ...f, phase: "stage" }), { status: "deferred" });
+  assert.equal(f.writes.length, 0);
+  f.flags.upToDate = true;
+  assert.deepEqual(await refreshNative({ ...f, phase: "stage" }), { status: "ready" });
+});
+
+test("owner-assisted staging labels but never closes before artifact publication", async () => {
+  const f = fixture();
+  const staged = await refreshNative({ ...f, phase: "stage", ownerAssisted: true });
+  assert.equal(staged.status, "staged");
+  assert.equal(f.pr.state, "open");
+  assert(!f.writes.some((write) => write.method === "PATCH"));
+  assert.equal((await ownedIntent(f.pr, f.request)).name, staged.intent.name);
+});
+
+test("machine close and owner-only reopen retain markers until backend cleanup", async () => {
+  const f = fixture();
+  const staged = await refreshNative({ ...f, phase: "stage", ownerAssisted: true });
+  f.flags.headOnPoll = false;
+  const advance = f.sleep;
+  let ownerSawMarker = false;
+  const sleep = async (ms) => {
+    await advance(ms);
+    if (f.pr.state === "closed") {
+      ownerSawMarker = f.pr.labels.some((label) => label.name === intentLabel);
+      f.pr.state = "open";
+      f.event("reopened", null, { login: "pbuffolino", type: "User" });
+    } else f.pr.head.sha = next;
+  };
+  assert.equal(
+    await refreshNative({
+      ...f,
+      phase: "finish",
+      stagedIntent: staged.intent,
+      ownerAssisted: true,
+      sleep,
+    }),
+    next
+  );
+  assert(ownerSawMarker);
+  assert.deepEqual(
+    f.writes
+      .filter((write) => write.method === "PATCH")
+      .map((write) => write.args.find((arg) => arg.startsWith?.("state="))),
+    ["state=closed"]
+  );
+  assert.deepEqual(
+    f.pr.labels.map((label) => label.name),
+    ["dependencies"]
+  );
+});
+
+test("owner timeout restores open as the machine and clears only its own markers", async () => {
+  const f = fixture();
+  const staged = await refreshNative({ ...f, phase: "stage", ownerAssisted: true });
+  f.flags.headOnPoll = false;
+  await assert.rejects(
+    refreshNative({ ...f, phase: "finish", stagedIntent: staged.intent, ownerAssisted: true }),
+    /handoff timed out/
+  );
+  assert.equal(f.pr.state, "open");
+  assert.deepEqual(
+    f.pr.labels.map((label) => label.name),
+    ["dependencies"]
+  );
+});
+
+test("a new head during owner reopening keeps markers until fresh metadata verifies cleanup", async () => {
+  const f = fixture();
+  const staged = await refreshNative({ ...f, phase: "stage", ownerAssisted: true });
+  f.flags.headOnPoll = false;
+  const advance = f.sleep;
+  const sleep = async (ms) => {
+    await advance(ms);
+    f.pr.state = "open";
+    f.pr.head.sha = next;
+    f.event("reopened", null, { login: "pbuffolino", type: "User" });
+  };
+  assert.equal(
+    await refreshNative({
+      ...f,
+      phase: "finish",
+      stagedIntent: staged.intent,
+      ownerAssisted: true,
+      sleep,
+    }),
+    next
+  );
+  assert(f.pr.labels.some((label) => label.name === intentLabel));
+  f.env.DEPENDABOT_SHA = next;
+  f.commits[0].sha = next;
+  await refreshNative({ ...f, phase: "cleanup" });
+  assert.deepEqual(
+    f.pr.labels.map((label) => label.name),
+    ["dependencies"]
+  );
 });
 
 test("the workflow CLI defaults to native refresh without enabling comment requests", async () => {

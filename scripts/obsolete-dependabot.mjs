@@ -7,6 +7,12 @@ const root = `repos/${repo}`;
 const shaPattern = /^[a-f0-9]{40}$/;
 const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const own = (value, key) => record(value) && Object.hasOwn(value, key);
+const hasRefreshIntent = (pr) =>
+  (pr.labels || []).some(
+    (label) =>
+      label.name === "dependency-refresh-intent" ||
+      new RegExp(`^r${pr.number}-[a-f0-9]{40}-[12]$`).test(label.name)
+  );
 
 // Compare complete changed entries, including resolved URLs/integrity and all other
 // package metadata. Arrays and other top-level values are atomic; never compare just versions.
@@ -70,7 +76,7 @@ export async function closeObsolete({
   async function inspect() {
     const pr = await request("api", `${root}/pulls/${number}`);
     // Interrupted native refreshes must use their authenticated recovery path instead.
-    if (pr.state === "closed") return null;
+    if (pr.state === "closed" || hasRefreshIntent(pr)) return null;
     const files = await request("api", `${root}/pulls/${number}/files?per_page=100`);
     const commits = await request("api", `${root}/pulls/${number}/commits?per_page=100`);
     if (!safeDependencyPR(pr, files, commits, repo, sha, dependencies) || pr.merged !== false)
@@ -115,6 +121,7 @@ export async function closeObsolete({
   const main = await request("api", `${root}/branches/main`);
   if (
     !safeDependencyPR(current, rechecked.files, [rechecked.commit], repo, sha, dependencies) ||
+    hasRefreshIntent(current) ||
     current.merged !== false ||
     current.head?.sha !== sha ||
     main.commit?.sha !== original.base

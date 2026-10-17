@@ -275,3 +275,24 @@ test("format-only or empty JSON deltas never close a PR", async () => {
   assert.equal(await closeObsolete(f), false);
   assert.equal(f.writes.length, 0);
 });
+
+test("obsolete closure never inherits a pending or partly cleared native recovery intent", async () => {
+  for (const name of ["dependency-refresh-intent", `r7-${base}-1`, `r7-${parent}-2`]) {
+    const f = fixture();
+    f.pr.labels = [{ name }];
+    assert.equal(await closeObsolete(f), false);
+    assert.equal(f.writes.length, 0);
+  }
+});
+
+test("an intent marker appearing during the last recheck prevents obsolete closure", async () => {
+  const f = fixture();
+  const original = f.request;
+  f.request = async (...args) => {
+    if (f.counts.pr >= 2 && args.includes(`repos/${repo}/pulls/7`))
+      f.pr.labels = [{ name: "dependency-refresh-intent" }];
+    return original(...args);
+  };
+  await assert.rejects(closeObsolete(f), /changed before/);
+  assert.equal(f.writes.length, 0);
+});
