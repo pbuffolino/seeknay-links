@@ -33,7 +33,9 @@ It stops after twelve minutes if checks, review requirements, or branch freshnes
 Dependabot can rebase an outdated PR; inspect failed publisher runs rather than bypassing CI.
 [GitHub Dependabot automation guidance](https://docs.github.com/en/code-security/tutorials/secure-your-dependencies/automate-dependabot-with-actions).
 
-After verifying the merge, the workflow explicitly requests a legacy Pages build. A build
+After verifying the merge, the publishers explicitly dispatch CI and CodeQL on `main`, then
+request a legacy Pages build. The dependency publisher needs `actions: write` for those
+dispatches. A build
 request is not delivery proof. Verify the completed deployment and live resources. If a build
 request fails after a successful merge, investigate the failed run and request a Pages rebuild
 after verifying the merged revision. Do not revert a valid security fix just because publication

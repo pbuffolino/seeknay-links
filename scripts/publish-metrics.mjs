@@ -114,6 +114,15 @@ export async function publishMetrics({
   if (!result.merged) throw new Error("Metrics merge was rejected");
   const merged = JSON.parse(await gh("api", `repos/${repo}/pulls/${number}`));
   if (!merged.merged) throw new Error("Metrics PR was not merged");
+  for (const workflow of ["ci.yml", "codeql.yml"])
+    await gh(
+      "api",
+      "--method",
+      "POST",
+      `repos/${repo}/actions/workflows/${workflow}/dispatches`,
+      "-f",
+      "ref=main"
+    );
   console.log("Merge verified; requesting Pages build");
   await gh("api", "--method", "POST", `repos/${repo}/pages/builds`);
   console.log("Merged verified metrics and requested Pages publication");

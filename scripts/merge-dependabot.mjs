@@ -126,7 +126,7 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
     (async (...args) => {
       try {
         const { stdout } = await exec("gh", args, { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
-        return JSON.parse(stdout);
+        return stdout.trim() ? JSON.parse(stdout) : null;
       } catch (error) {
         const status = error.stderr?.match(/HTTP (\d{3})/)?.[1];
         throw new Error(`GitHub request failed: ${args[1]}${status ? ` (HTTP ${status})` : ""}`, {
@@ -187,6 +187,16 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
       const merged = await gh("api", `repos/${repo}/pulls/${number}`);
       if (!merged.merged || merged.head.sha !== sha)
         throw new Error("Cannot verify dependency merge");
+      // Explicit dispatch keeps default-branch checks current after a token-authored merge.
+      for (const workflow of ["ci.yml", "codeql.yml"])
+        await gh(
+          "api",
+          "--method",
+          "POST",
+          `repos/${repo}/actions/workflows/${workflow}/dispatches`,
+          "-f",
+          "ref=main"
+        );
       // GITHUB_TOKEN merges do not trigger legacy Pages builds. Request publication explicitly.
       await gh("api", "--method", "POST", `repos/${repo}/pages/builds`);
       console.log("Dependency merge verified; Pages build requested");

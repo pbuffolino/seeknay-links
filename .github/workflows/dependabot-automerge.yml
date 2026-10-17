@@ -40,7 +40,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      actions: read
+      actions: write
       security-events: read
       pages: write
     steps:

@@ -230,9 +230,11 @@ test("merges by SHA only after guards and successful CI, then requests Pages pub
     return writes.length ? { ...data.pr, merged: true } : data.pr;
   };
   await mergeDependabot({ env, request });
-  assert.equal(writes.length, 2);
+  assert.equal(writes.length, 4);
   assert(writes[0].includes(`sha=${sha}`));
-  assert(writes[1].includes(`repos/${repo}/pages/builds`));
+  assert(writes[1].includes(`repos/${repo}/actions/workflows/ci.yml/dispatches`));
+  assert(writes[2].includes(`repos/${repo}/actions/workflows/codeql.yml/dispatches`));
+  assert(writes[3].includes(`repos/${repo}/pages/builds`));
   writes.length = 0;
   comparisonBase = "b".repeat(40);
   await assert.rejects(mergeDependabot({ env, request }), /behind the current base/);
