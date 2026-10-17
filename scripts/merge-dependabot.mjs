@@ -157,7 +157,9 @@ export async function mergeDependabot({ env = process.env, request } = {}) {
     if (run?.status === "completed" && run.conclusion !== "success")
       throw new Error("Dependency CI did not succeed");
     const current = await verify();
-    if (run?.conclusion === "success" && current.mergeable_state === "clean") {
+    // A running publisher is itself a pending, non-required check, reported as "unstable".
+    // The protected merge API still enforces every required check and review.
+    if (run?.conclusion === "success" && ["clean", "unstable"].includes(current.mergeable_state)) {
       const analyses = await gh(
         "api",
         `repos/${repo}/code-scanning/analyses?ref=refs/pull/${number}/head&tool_name=CodeQL&per_page=100`

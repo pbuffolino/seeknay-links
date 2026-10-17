@@ -185,8 +185,9 @@ test("requires both current CodeQL analyses without errors or coverage warnings"
   ])
     assert.equal(successfulScans([{ ...analyses[0], ...delta }, analyses[1]], sha), false);
 });
-test("merges by SHA only after guards and successful CI, then requests Pages publication", async () => {
+test("a pending publisher can merge by SHA after required checks, then refreshes checks and Pages", async () => {
   const data = fixture();
+  data.pr.mergeable_state = "unstable";
   const writes = [];
   let comparisonBase = "c".repeat(40);
   const env = {
