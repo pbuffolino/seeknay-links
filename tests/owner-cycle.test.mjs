@@ -680,3 +680,134 @@ test("a close event outside the grant window cannot pass post-cycle verification
   assert.equal(f.pr.state, "open");
   assert.equal(f.writes.length, 2);
 });
+
+test("completed backend cleanup after a verified owner reopen is only a nonwriting signal", async () => {
+  for (const afterReopen of [false, true]) {
+    const f = fixture(),
+      original = f.request;
+    const definitions = new Map(f.pr.labels.map((label) => [label.name, label]));
+    const finish = () => {
+      f.pr.head.sha = "e".repeat(40);
+      for (const name of [
+        "dependency-refresh-intent",
+        f.value.intent.name,
+        cycleGrant(f.value).name,
+      ]) {
+        const removed = f.event("unlabeled", machine);
+        removed.label = { name };
+      }
+      f.pr.labels = [{ name: "preserve" }];
+    };
+    if (!afterReopen) {
+      f.event("closed");
+      f.event("reopened");
+      finish();
+    }
+    const request = async (...args) => {
+      const endpoint = args.find((arg) => arg.startsWith?.("repos/"));
+      if (endpoint?.includes("/labels/")) {
+        const label = definitions.get(decodeURIComponent(endpoint.split("/labels/")[1]));
+        if (label) return label;
+      }
+      const result = await original(...args);
+      if (afterReopen && args.includes("state=open")) finish();
+      return result;
+    };
+    await assistRequest({ ...f, request });
+    assert.equal(f.pr.state, "open");
+    assert.equal(f.writes.length, afterReopen ? 2 : 0);
+    assert.deepEqual(f.pr.labels, [{ name: "preserve" }]);
+  }
+});
+
+test("missing cleanup intent never authorizes a write or hides a closed or unchanged head", async () => {
+  for (const mutate of [
+    () => {},
+    (f) => {
+      f.pr.head.sha = "e".repeat(40);
+      f.pr.state = "closed";
+    },
+    (f) => {
+      f.pr.head.sha = "e".repeat(40);
+      f.pr.head.repo.full_name = "other/repo";
+    },
+    (f) => {
+      f.pr.head.sha = "e".repeat(40);
+      f.pr.user = owner;
+    },
+    (f) => {
+      f.pr.head.sha = "e".repeat(40);
+      f.run.run_attempt = 2;
+    },
+  ]) {
+    const f = fixture();
+    f.pr.labels = [{ name: "preserve" }];
+    mutate(f);
+    await assert.rejects(assistRequest(f));
+    assert.equal(f.writes.length, 0);
+  }
+});
+
+test("cleanup acknowledgement requires the exact durable grant, owner timeline and machine removals", async () => {
+  for (const mutate of [
+    (f) => {
+      f.events.at(-1).actor = owner;
+    },
+    (f) => {
+      f.events.find((event) => event.event === "reopened").actor = bot;
+    },
+    (f) => {
+      f.events.find((event) => event.event === "closed").created_at = new Date(
+        start + 400000
+      ).toISOString();
+    },
+    (f) => {
+      f.event("closed");
+    },
+    (f) => {
+      f.events.at(-1).id = 1;
+    },
+    (f, definitions) => {
+      definitions.get(cycleGrant(f.value).name).description = "forged";
+    },
+    (f) => {
+      f.flags.failedInspect = true;
+    },
+    (f) => {
+      f.run.head_sha = "f".repeat(40);
+    },
+    (f) => {
+      f.artifact.digest = "invalid";
+    },
+    (f) => {
+      f.value.expiresAt = start;
+    },
+  ]) {
+    const f = fixture(),
+      original = f.request;
+    const definitions = new Map(f.pr.labels.map((label) => [label.name, { ...label }]));
+    f.event("closed");
+    f.event("reopened");
+    for (const name of [
+      "dependency-refresh-intent",
+      f.value.intent.name,
+      cycleGrant(f.value).name,
+    ]) {
+      const removed = f.event("unlabeled", machine);
+      removed.label = { name };
+    }
+    f.pr.head.sha = "e".repeat(40);
+    f.pr.labels = [{ name: "preserve" }];
+    mutate(f, definitions);
+    const request = async (...args) => {
+      const endpoint = args.find((arg) => arg.startsWith?.("repos/"));
+      if (endpoint?.includes("/labels/")) {
+        const label = definitions.get(decodeURIComponent(endpoint.split("/labels/")[1]));
+        if (label) return label;
+      }
+      return original(...args);
+    };
+    await assert.rejects(assistRequest({ ...f, request }));
+    assert.equal(f.writes.length, 0);
+  }
+});

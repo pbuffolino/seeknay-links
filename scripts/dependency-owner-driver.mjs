@@ -14,6 +14,7 @@ import {
 } from "./native-dependabot-refresh.mjs";
 import { validOwnerRequest, trustedDispatch, trustedRun } from "./owner-refresh-protocol.mjs";
 import { assistOwnerCycle } from "./owner-cycle-helper.mjs";
+import { cycleGrant, ownerClosureGrant } from "./owner-cycle-intent.mjs";
 export { trustedDispatch, trustedRun } from "./owner-refresh-protocol.mjs";
 
 const exec = promisify(execFile);
@@ -99,8 +100,24 @@ export async function assistRequest({
     artifact.name !== `dependency-refresh-${run.id}-${run.run_attempt}-${value.number}`
   )
     throw new Error("Owner refresh request provenance is invalid or expired");
-  if (value.mode === "owner-cycle")
-    return assistOwnerCycle({ value, artifact, run, request, now, sshRestore });
+  if (value.mode === "owner-cycle") {
+    try {
+      return await assistOwnerCycle({ value, artifact, run, request, now, sshRestore });
+    } catch (error) {
+      if (
+        error.message !== "Owner cycle has no authenticated durable intent" ||
+        !(await observeCleanedCycle({ value, artifact, run, request, now }))
+      )
+        throw error;
+      // A backend can finish its nonwriting new-head path and remove markers before
+      // this helper observes them. This is no cycle or eligibility receipt, and
+      // never permits another close, reopen, restoration, or cleanup write.
+      console.log(
+        `Open changed head observed after marker cleanup for PR #${value.number}; no additional owner writes, backend eligibility and completion still required`
+      );
+      return true;
+    }
+  }
   async function verify() {
     const active = await request("api", `${root}/actions/runs/${run.id}`);
     if (
@@ -237,6 +254,111 @@ export async function assistRequest({
     `OWNER REOPEN VERIFIED: PR #${value.number}, run ${run.id}; backend retains all merge/publication gates`
   );
   return true;
+}
+
+async function observeCleanedCycle({ value, artifact, run, request, now }) {
+  // Only acknowledge a completed fresh cycle, never an interrupted closure or
+  // recovery-only request. Historical evidence below authorizes no mutation.
+  if (
+    value.initialState !== "open" ||
+    value.recoverOnly ||
+    !validOwnerRequest(value, now()) ||
+    !trustedArtifact(artifact, run, now())
+  )
+    return false;
+  const active = await request("api", `${root}/actions/runs/${run.id}`);
+  if (
+    !trustedRun(active, run.id, value.workflowSha, run.workflow_id) ||
+    active.run_attempt !== value.runAttempt ||
+    active.status !== "in_progress"
+  )
+    return false;
+  const user = await request("api", "user");
+  if (user.login !== owner || user.type !== "User") return false;
+  const pr = await request("api", `${root}/pulls/${value.number}`);
+  const openChangedHead =
+    pr.number === value.number &&
+    pr.state === "open" &&
+    pr.merged === false &&
+    pr.draft === false &&
+    pr.user?.login === "dependabot[bot]" &&
+    pr.head?.repo?.full_name === repo &&
+    pr.base?.repo?.full_name === repo &&
+    pr.base?.ref === "main" &&
+    pr.head.ref.startsWith("dependabot/") &&
+    /^[a-f0-9]{40}$/.test(pr.head.sha || "") &&
+    pr.head.sha !== value.head &&
+    Array.isArray(pr.labels) &&
+    !pr.labels.some(
+      (label) =>
+        label.name === intentLabel ||
+        label.name === value.intent.name ||
+        label.name.startsWith("dependency-owner-")
+    );
+  if (!openChangedHead) return false;
+  const events = await listAll(`issues/${value.number}/events`, request);
+  if (
+    events.some(
+      (event) =>
+        !Number.isSafeInteger(event.id) ||
+        event.id < 1 ||
+        !Number.isFinite(Date.parse(event.created_at))
+    ) ||
+    new Set(events.map((event) => event.id)).size !== events.length
+  )
+    return false;
+  events.sort((a, b) => a.id - b.id);
+  const grant = cycleGrant(value);
+  const definition = await request("api", `${root}/labels/${encodeURIComponent(grant.name)}`);
+  if (definition.name !== grant.name || definition.description !== grant.description) return false;
+  const attached = events
+    .filter((event) => event.event === "labeled" && event.label?.name === grant.name)
+    .at(-1);
+  const states = events.filter(
+    (event) => ["closed", "reopened"].includes(event.event) && event.id > attached?.id
+  );
+  if (
+    states.length !== 2 ||
+    states[0].event !== "closed" ||
+    states[1].event !== "reopened" ||
+    states.some((event) => event.actor?.login !== owner || event.actor.type !== "User") ||
+    Date.parse(states[0].created_at) < value.createdAt - 1000 ||
+    Date.parse(states[0].created_at) > value.expiresAt ||
+    Date.parse(states[1].created_at) < Date.parse(states[0].created_at) ||
+    Date.parse(states[1].created_at) > now() + 30000
+  )
+    return false;
+  const reopened = states[1];
+  for (const name of [intentLabel, value.intent.name, grant.name]) {
+    const changes = events
+      .filter(
+        (event) => ["labeled", "unlabeled"].includes(event.event) && event.label?.name === name
+      )
+      .slice(-2);
+    if (
+      changes.length !== 2 ||
+      changes[0].event !== "labeled" ||
+      changes[1].event !== "unlabeled" ||
+      changes.some(
+        (event) => event.actor?.login !== "github-actions[bot]" || event.actor.type !== "Bot"
+      ) ||
+      changes[0].id >= states[0].id ||
+      changes[1].id <= reopened.id ||
+      Date.parse(changes[1].created_at) < Date.parse(reopened.created_at)
+    )
+      return false;
+  }
+  // Reuse the unchanged durable-grant verifier against the observed historical
+  // state immediately after reopen, before authenticated machine label cleanup.
+  return (
+    (await ownerClosureGrant(
+      { ...pr, head: { ...pr.head, sha: value.head }, labels: [definition] },
+      events.filter((event) => event.id <= reopened.id),
+      request,
+      false,
+      grant.name
+    )) === grant.name
+  );
 }
 
 export async function ownerDriver({
