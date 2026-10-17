@@ -5,6 +5,7 @@ import { githubRequest, safeDependencyPR, safeDependencyScope } from "./merge-de
 import { ownedIntent, recoverablePRs, refreshNative } from "./native-dependabot-refresh.mjs";
 import { closeObsolete } from "./obsolete-dependabot.mjs";
 import { ownerRequest, validOwnerRequest } from "./owner-refresh-protocol.mjs";
+import { attachCycleGrant } from "./owner-cycle-intent.mjs";
 
 const repository = "pbuffolino/seeknay-links";
 const shaPattern = /^[a-f0-9]{40}$/;
@@ -207,7 +208,13 @@ async function main() {
     const result = await refreshNative({ phase: "stage" });
     await output("status", result.status);
     if (result.status === "staged") {
-      const value = ownerRequest(process.env, result.intent);
+      const value = ownerRequest(process.env, result.intent, Date.now(), {
+        base: result.base || result.intent.base,
+        initialState: result.initialState || "open",
+        closureId: result.closureId || 0,
+        recoverOnly: result.recoverOnly || false,
+      });
+      await attachCycleGrant(value, githubRequest);
       const directory = path.join(process.env.RUNNER_TEMP, "dependency-refresh");
       await fs.mkdir(directory, { recursive: true });
       await fs.writeFile(path.join(directory, "refresh-request.json"), JSON.stringify(value));
@@ -228,7 +235,7 @@ async function main() {
       value.head !== process.env.DEPENDABOT_SHA
     )
       throw new Error("Staged refresh provenance changed");
-    await refreshNative({ phase: "finish", stagedIntent: value.intent });
+    await refreshNative({ phase: "finish", stagedIntent: value.intent, stagedRequest: value });
   } else if (mode === "cleanup-refresh") {
     await refreshNative({ phase: "cleanup" });
   } else if (mode === "classify") {
