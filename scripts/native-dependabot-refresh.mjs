@@ -114,6 +114,7 @@ export async function restoreOwnedRef({
   request = githubRequest,
   expectedBase,
   restored = new Set(),
+  createReference,
 } = {}) {
   const number = Number(env.DEPENDABOT_PR),
     sha = env.DEPENDABOT_SHA;
@@ -220,16 +221,44 @@ export async function restoreOwnedRef({
   if (!ref) {
     restored.add(restorationKey);
     try {
-      await request(
-        "api",
-        "--method",
-        "POST",
-        `${root}/git/refs`,
-        "-f",
-        `ref=${original.ref}`,
-        "-f",
-        `sha=${sha}`
-      );
+      const nativeCreate = () =>
+        request(
+          "api",
+          "--method",
+          "POST",
+          `${root}/git/refs`,
+          "-f",
+          `ref=${original.ref}`,
+          "-f",
+          `sha=${sha}`
+        );
+      if (createReference) {
+        await createReference({
+          number,
+          sha,
+          ref: original.ref,
+          nativeCreate,
+          verifyAbsent: async () => {
+            const current = await verify();
+            if (
+              current.intent.name !== original.intent.name ||
+              current.ref !== original.ref ||
+              current.base !== original.base ||
+              (await reference())
+            )
+              throw new Error("Owned closure/base/ref changed before create-only restoration");
+            const currentEvents = await eventsFor(number, request);
+            const currentClosure = currentEvents
+              .filter((event) => ["closed", "reopened"].includes(event.event))
+              .at(-1);
+            const currentDeletion = currentEvents
+              .filter((event) => ["head_ref_deleted", "head_ref_restored"].includes(event.event))
+              .at(-1);
+            if (currentClosure?.id !== closure.id || currentDeletion?.id !== deletion.id)
+              throw new Error("Owned deletion/closure changed before create-only restoration");
+          },
+        });
+      } else await nativeCreate();
     } catch (error) {
       if (![409, 422].includes(error.status) || !matches(await reference())) throw error;
     }

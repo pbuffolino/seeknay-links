@@ -2,11 +2,19 @@ import { safeDependencyPR, protectedBranch } from "./merge-dependabot.mjs";
 import { ownedIntent, listAll, restoreOwnedRef } from "./native-dependabot-refresh.mjs";
 import { cycleGrant, ownerClosureGrant } from "./owner-cycle-intent.mjs";
 import { validOwnerRequest, trustedRun } from "./owner-refresh-protocol.mjs";
+import { restoreViaOwnerSSH } from "./owner-ssh-ref.mjs";
 
 const repo = "pbuffolino/seeknay-links",
   root = `repos/${repo}`;
 const owner = (actor) => actor?.login === "pbuffolino" && actor.type === "User";
-export async function assistOwnerCycle({ value, artifact, run, request, now = Date.now }) {
+export async function assistOwnerCycle({
+  value,
+  artifact,
+  run,
+  request,
+  now = Date.now,
+  sshRestore = restoreViaOwnerSSH,
+}) {
   const grant = cycleGrant(value),
     restored = new Set();
   const restoration = {
@@ -18,6 +26,17 @@ export async function assistOwnerCycle({ value, artifact, run, request, now = Da
     },
     request,
     restored,
+    createReference: async ({ number, sha, ref, verifyAbsent }) => {
+      await sshRestore({
+        number,
+        sha,
+        ref,
+        verifyAbsent: async () => {
+          await verify({ cleanup: true });
+          await verifyAbsent();
+        },
+      });
+    },
   };
   async function verify({ cleanup = false } = {}) {
     const active = await request("api", `${root}/actions/runs/${run.id}`);

@@ -88,6 +88,7 @@ export async function assistRequest({
   run,
   request = githubRequest,
   now = Date.now,
+  sshRestore,
 } = {}) {
   if (
     !validOwnerRequest(value, now()) ||
@@ -98,7 +99,8 @@ export async function assistRequest({
     artifact.name !== `dependency-refresh-${run.id}-${run.run_attempt}-${value.number}`
   )
     throw new Error("Owner refresh request provenance is invalid or expired");
-  if (value.mode === "owner-cycle") return assistOwnerCycle({ value, artifact, run, request, now });
+  if (value.mode === "owner-cycle")
+    return assistOwnerCycle({ value, artifact, run, request, now, sshRestore });
   async function verify() {
     const active = await request("api", `${root}/actions/runs/${run.id}`);
     if (

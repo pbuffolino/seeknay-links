@@ -101,9 +101,19 @@ The restored ref must read back at the exact signed SHA before reopening. Change
 refs, human/obsolete closures, and repeated deletions require review. The refresh job reuses
 the publisher's existing contents-write capability for this bounded recovery when GitHub
 permits it. GitHub can deny Actions reference creation when workflow permissions are needed.
-The owner helper uses only its existing authentication and no scopes are widened. A fresh,
-complete inspected recovery artifact may authorize owner restoration of the exact absent
-signed ref and recovery of that old authenticated closure against current protected main.
+The owner helper restores through the existing owner SSH transport after repeating its full
+trusted run, grant, signed eligibility, closure/deletion, protected base and absent-ref checks.
+It verifies both existing owner API identity and SSH identity, plus the exact SSH origin.
+An isolated bare repository fetches only the PR head as data, verifies the complete signed
+commit object's hash, and uses an explicit empty-expected lease on the exact bot ref. Git
+atomically requires that destination ref to be absent. An existing ref, including an identical
+one, is never accepted as a new creation. The helper requires a native new-branch receipt and
+exact API SHA readback. Hooks, inherited Git configuration, credential helpers and arbitrary
+SSH commands are disabled; no PR code is checked out or executed. Credentials and scopes are
+never changed. Unknown API errors during any prerequisite guard stop the operation; they do
+not trigger a fallback. The owner helper does not attempt a REST ref write.
+[Git create-only lease semantics](https://git-scm.com/docs/git-push#Documentation/git-push.txt---force-with-leaseltrefnamegtltexpectgt).
+
 If cleanup cannot restore/reopen with available permissions, it retains durable markers and
 reports failure for owner-assisted recovery. An expired artifact never authorizes a new owner
 action; only an already started helper's bounded `finally` cleanup may restore its own
