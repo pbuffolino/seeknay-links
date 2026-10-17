@@ -58,7 +58,9 @@ After verifying the merge, the publishers explicitly dispatch CI and CodeQL on `
 request a legacy Pages build. Before processing the next candidate, a separate read-only job
 requires successful exact-revision main CI and CodeQL workflows, both warning-free CodeQL
 categories, no open main scan alerts, a successful exact-revision Pages build and deployment,
-and matching live HTML/resources. The latest result per CodeQL category controls retries;
+and matching live HTML/resources. Verification jobs check out literal protected `main` with
+credentials disabled and assert its local HEAD matches the expected publication SHA before
+setup or installation. The latest result per CodeQL category controls retries;
 an older failed attempt does not invalidate a newer successful analysis. Main advancing during
 verification requires a new receipt. Origin TLS remains a separate weekly security check and
 is never bypassed or repaired by the publisher.

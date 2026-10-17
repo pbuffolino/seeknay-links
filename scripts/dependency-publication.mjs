@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 import { githubRequest, successfulScans, scanProblem } from "./merge-dependabot.mjs";
 
 const repo = "pbuffolino/seeknay-links";
@@ -24,6 +25,14 @@ const resources = [
   "assets/avatar-96.jpg",
   "assets/avatar-192.jpg",
 ];
+
+export function assertCheckout(
+  sha,
+  readHead = () => execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim()
+) {
+  if (!shaPattern.test(sha || "") || readHead() !== sha)
+    throw new Error("Trusted main checkout does not match the expected publication revision");
+}
 
 function validRun(run, workflow, sha) {
   return (
@@ -169,7 +178,10 @@ async function main() {
         process.env.GITHUB_OUTPUT,
         `sha=${sha}\ndeadline=${process.env.DEPENDENCY_DEADLINE}\n`
       );
+  } else if (process.argv[2] === "assert-checkout") {
+    assertCheckout(process.env.PUBLICATION_SHA);
   } else if (process.argv[2] === "verify") {
+    assertCheckout(process.env.PUBLICATION_SHA);
     await verifyPublication({ sha: process.env.PUBLICATION_SHA });
     console.log(
       "Verified exact main CI, both CodeQL analyses, Pages deployment, and live resources"

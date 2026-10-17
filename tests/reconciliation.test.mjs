@@ -13,6 +13,7 @@ import {
   smokeCandidate,
 } from "../scripts/reconcile-dependabot.mjs";
 import {
+  assertCheckout,
   publicationReady,
   requestPublication,
   verifyPublication,
@@ -543,4 +544,10 @@ test("infrastructure smoke bounds candidate retries when queue items naturally c
     null
   );
   assert.equal(gets, 2);
+});
+
+test("verification uses only a trusted checkout at the expected exact revision", () => {
+  assert.doesNotThrow(() => assertCheckout(sha, () => sha));
+  assert.throws(() => assertCheckout(sha, () => next), /Trusted main checkout/);
+  assert.throws(() => assertCheckout("main", () => sha), /Trusted main checkout/);
 });
