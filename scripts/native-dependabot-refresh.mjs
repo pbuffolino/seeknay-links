@@ -1,4 +1,9 @@
-import { githubRequest, safeDependencyPR, approveDependencyRuns } from "./merge-dependabot.mjs";
+import {
+  githubRequest,
+  safeDependencyPR,
+  protectedBranch,
+  approveDependencyRuns,
+} from "./merge-dependabot.mjs";
 
 const repo = "pbuffolino/seeknay-links";
 const root = `repos/${repo}`;
@@ -101,6 +106,145 @@ export async function recoverablePRs(request = githubRequest) {
   return numbers;
 }
 
+// Recreate only an absent bot ref at its original verified signed SHA. This never
+// updates an existing reference, rebases, creates a commit, or touches main.
+export async function restoreOwnedRef({
+  env = process.env,
+  request = githubRequest,
+  expectedBase,
+  restored = new Set(),
+} = {}) {
+  const number = Number(env.DEPENDABOT_PR),
+    sha = env.DEPENDABOT_SHA;
+  if (
+    env.GITHUB_REPOSITORY !== repo ||
+    !Number.isSafeInteger(number) ||
+    number < 1 ||
+    !shaPattern.test(sha || "")
+  )
+    throw new Error("Invalid owned-ref restoration target");
+  const dependencies = JSON.parse(env.DEPENDABOT_METADATA || "null");
+  async function verify() {
+    const pr = await request("api", `${root}/pulls/${number}`);
+    const [files, commits] = await Promise.all([
+      request("api", `${root}/pulls/${number}/files?per_page=100`),
+      request("api", `${root}/pulls/${number}/commits?per_page=100`),
+    ]);
+    if (
+      pr.state !== "closed" ||
+      pr.merged !== false ||
+      !safeDependencyPR({ ...pr, state: "open" }, files, commits, repo, sha, dependencies)
+    )
+      throw new Error("Owned-ref restoration failed signed dependency guards");
+    const intent = await ownedIntent(pr, request);
+    if (!intent || intent.head !== sha)
+      throw new Error("Missing authenticated machine closure for ref restoration");
+    const branch = pr.head.ref;
+    if (
+      !/^dependabot\/[A-Za-z0-9_./-]+$/.test(branch) ||
+      branch.includes("..") ||
+      branch.endsWith(".") ||
+      branch.endsWith("/") ||
+      branch.split("/").some((part) => !part || part.startsWith(".") || part.endsWith(".lock"))
+    )
+      throw new Error("Ref restoration is restricted to the exact safe bot branch");
+    const main = await request("api", `${root}/branches/main`);
+    if (
+      !protectedBranch(main) ||
+      !shaPattern.test(main.commit?.sha || "") ||
+      (expectedBase && main.commit.sha !== expectedBase)
+    )
+      throw new Error("Owned-ref restoration base/protection changed");
+    if (intent.base !== main.commit.sha) {
+      const ancestry = await request("api", `${root}/compare/${intent.base}...${main.commit.sha}`);
+      if (ancestry.merge_base_commit?.sha !== intent.base)
+        throw new Error("Refresh intent base is no longer on protected main");
+    }
+    return {
+      pr,
+      intent,
+      base: main.commit.sha,
+      ref: `refs/heads/${branch}`,
+      endpoint: `${root}/git/ref/heads/${branch}`,
+    };
+  }
+  const original = await verify();
+  async function reference() {
+    try {
+      return await request("api", original.endpoint);
+    } catch (error) {
+      if (error.status !== 404) throw error;
+      return null;
+    }
+  }
+  function matches(value) {
+    return (
+      value?.ref === original.ref && value.object?.type === "commit" && value.object.sha === sha
+    );
+  }
+  let ref = await reference();
+  if (ref) {
+    if (!matches(ref)) throw new Error("Existing bot ref changed; never overwrite it");
+    return false;
+  }
+  const events = await eventsFor(number, request);
+  const closure = events.filter((event) => ["closed", "reopened"].includes(event.event)).at(-1);
+  const deletion = events
+    .filter((event) => ["head_ref_deleted", "head_ref_restored"].includes(event.event))
+    .at(-1);
+  if (
+    closure?.event !== "closed" ||
+    !isMachine(closure.actor) ||
+    deletion?.event !== "head_ref_deleted" ||
+    deletion.actor?.login !== "dependabot[bot]" ||
+    deletion.actor.type !== "Bot" ||
+    deletion.id <= closure.id
+  )
+    throw new Error(
+      "Missing post-closure Dependabot deletion proof; ref restoration requires review"
+    );
+  if (restored.has(original.intent.name))
+    throw new Error("Bot ref deleted again during this handoff; review required");
+  if (events.some((event) => event.event === "head_ref_restored" && event.id > closure.id))
+    throw new Error("Bot ref deleted again after a recorded restoration; review required");
+  const final = await verify();
+  if (
+    final.intent.name !== original.intent.name ||
+    final.ref !== original.ref ||
+    final.base !== original.base
+  )
+    throw new Error("Owned ref/closure/base changed before restoration");
+  ref = await reference();
+  if (!ref) {
+    restored.add(original.intent.name);
+    try {
+      await request(
+        "api",
+        "--method",
+        "POST",
+        `${root}/git/refs`,
+        "-f",
+        `ref=${original.ref}`,
+        "-f",
+        `sha=${sha}`
+      );
+    } catch (error) {
+      if (![409, 422].includes(error.status) || !matches(await reference())) throw error;
+    }
+  }
+  if (!matches(await reference()))
+    throw new Error("Restored bot ref does not match the original signed SHA");
+  const after = await verify();
+  if (
+    after.intent.name !== original.intent.name ||
+    after.ref !== original.ref ||
+    after.base !== original.base
+  )
+    throw new Error("Owned closure/base changed after restoring its signed ref");
+  console.log(`Restored exact signed bot ref for owned refresh PR #${number}`);
+  return true;
+}
+
 export async function refreshNative({
   env = process.env,
   request = githubRequest,
@@ -122,6 +266,7 @@ export async function refreshNative({
   )
     throw new Error("Invalid native refresh target");
   const dependencies = JSON.parse(env.DEPENDABOT_METADATA || "null");
+  const restored = new Set();
   async function verified() {
     const pr = await request("api", `${root}/pulls/${number}`);
     const files = await request("api", `${root}/pulls/${number}/files?per_page=100`);
@@ -154,7 +299,16 @@ export async function refreshNative({
     if (!proof || proof.name !== intent.name)
       throw new Error("Native refresh ownership changed; review required");
     if (pr.state === "closed") {
-      await request("api", "--method", "PATCH", `${root}/pulls/${number}`, "-f", "state=open");
+      await restoreOwnedRef({ env, request, restored });
+      await verified();
+      try {
+        await request("api", "--method", "PATCH", `${root}/pulls/${number}`, "-f", "state=open");
+      } catch (error) {
+        if (error.status !== 422 || !(await restoreOwnedRef({ env, request, restored })))
+          throw error;
+        await verified();
+        await request("api", "--method", "PATCH", `${root}/pulls/${number}`, "-f", "state=open");
+      }
       pr = await verified();
     }
     if (pr.state !== "open" || pr.head.sha !== sha)
@@ -192,6 +346,7 @@ export async function refreshNative({
           const state = await request("api", `${root}/pulls/${number}`);
           if (state.state === "open" && state.merged === false) return;
           await verified(); // Reject manual/obsolete closures, changed closed heads and invalid signatures.
+          await restoreOwnedRef({ env, request, expectedBase: intent.base, restored });
           await sleep(5000);
         }
         throw new Error("Owner handoff timed out; restoring the machine-owned closure");
@@ -218,7 +373,10 @@ export async function refreshNative({
     await perform(pending, true);
   } else if (pr.state === "closed") {
     await restore(pending);
-    if (phase === "stage") return { status: "deferred" };
+    if (phase === "stage")
+      return ownerAssisted
+        ? refreshNative({ env, request, now, sleep, approve, phase: "stage", ownerAssisted })
+        : { status: "deferred" };
   } else {
     // Also finish cleanup after a crash following reopen or between label removals.
     if (pending) await restore(pending);

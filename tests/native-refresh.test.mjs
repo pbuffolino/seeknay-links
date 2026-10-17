@@ -64,6 +64,7 @@ function fixture() {
     failCleanup: false,
     upToDate: false,
     headOnPoll: true,
+    missingRef: false,
     closeResponseLost: false,
     manualCloseRace: false,
   };
@@ -92,12 +93,43 @@ function fixture() {
     const method = args.includes("--method") ? args[args.indexOf("--method") + 1] : "GET";
     const field = (name) => args.find((v) => v.startsWith?.(`${name}=`))?.slice(name.length + 1);
     if (method !== "GET") writes.push({ method, endpoint, args });
+    if (endpoint.includes("/git/ref/heads/")) {
+      if (flags.missingRef) {
+        const error = new Error("missing");
+        error.status = 404;
+        throw error;
+      }
+      return { ref: `refs/heads/${pr.head.ref}`, object: { type: "commit", sha: head } };
+    }
+    if (endpoint.endsWith("/git/refs") && method === "POST") {
+      flags.missingRef = false;
+      return {};
+    }
     if (endpoint.includes("/events?")) return structuredClone(events);
     if (endpoint.includes("/issues?"))
       return pr.state === "closed" && pr.labels.some((l) => l.name === intentLabel)
         ? [{ number: 7, pull_request: {} }]
         : [];
-    if (endpoint.endsWith("/branches/main")) return { commit: { sha: base } };
+    if (endpoint.endsWith("/branches/main"))
+      return {
+        commit: { sha: base },
+        protected: true,
+        protection: {
+          enabled: true,
+          required_status_checks: {
+            enforcement_level: "everyone",
+            checks: [
+              "lint",
+              "link-check",
+              "security-audit",
+              "browser-test",
+              "dependency-review",
+              "Analyze (actions)",
+              "Analyze (javascript-typescript)",
+            ].map((context) => ({ context, app_id: 15368 })),
+          },
+        },
+      };
     if (endpoint.includes("/compare/"))
       return { merge_base_commit: { sha: flags.upToDate ? base : "d".repeat(40) } };
     if (endpoint.includes("/files?")) return structuredClone(files);
@@ -488,6 +520,22 @@ test("owner timeout restores open as the machine and clears only its own markers
     f.pr.labels.map((label) => label.name),
     ["dependencies"]
   );
+});
+
+test("a later machine recovery restores its bot-deleted signed ref before reopening", async () => {
+  const f = fixture();
+  f.addIntent();
+  f.pr.state = "closed";
+  f.event("closed");
+  f.event("head_ref_deleted", null, { login: "dependabot[bot]", type: "Bot" });
+  f.flags.missingRef = true;
+  await refreshNative({ ...f, phase: "cleanup" });
+  assert.equal(f.flags.missingRef, false);
+  assert.equal(f.pr.state, "open");
+  const restore = f.writes.findIndex((write) => write.endpoint.endsWith("/git/refs"));
+  const reopen = f.writes.findIndex((write) => write.args.includes("state=open"));
+  assert(restore >= 0 && restore < reopen);
+  assert(f.writes[restore].args.includes(`sha=${head}`));
 });
 
 test("a new head during owner reopening keeps markers until fresh metadata verifies cleanup", async () => {

@@ -147,10 +147,27 @@ function fixture() {
     const endpoint = args.find((arg) => arg.startsWith?.("repos/") || arg === "user");
     if (args.includes("--method")) {
       writes.push(args);
+      if (endpoint.endsWith("/git/refs")) {
+        flags.missingRef = false;
+        return {};
+      }
       assert(args.includes("state=open"));
+      if (flags.deleteDuringOpen) {
+        flags.deleteDuringOpen = false;
+        flags.missingRef = true;
+        events.push({
+          id: Math.max(...events.map((event) => event.id)) + 1,
+          event: "head_ref_deleted",
+          actor: { login: "dependabot[bot]", type: "Bot" },
+          created_at: new Date(clock).toISOString(),
+        });
+        const error = new Error("reopen validation");
+        error.status = 422;
+        throw error;
+      }
       pr.state = "open";
       events.push({
-        id: 4,
+        id: Math.max(...events.map((event) => event.id)) + 1,
         event: "reopened",
         actor: owner,
         created_at: new Date(clock).toISOString(),
@@ -158,6 +175,14 @@ function fixture() {
       return structuredClone(pr);
     }
     if (endpoint === "user") return flags.wrongOwner ? { login: "another", type: "User" } : owner;
+    if (endpoint.includes("/git/ref/heads/")) {
+      if (flags.missingRef) {
+        const error = new Error("missing");
+        error.status = 404;
+        throw error;
+      }
+      return { ref: `refs/heads/${pr.head.ref}`, object: { type: "commit", sha: head } };
+    }
     if (endpoint.endsWith("/actions/workflows/dependabot-automerge.yml")) return { id: 9 };
     if (endpoint.endsWith("/actions/runs/123")) return structuredClone(run);
     if (endpoint.includes("/artifacts?"))
@@ -221,6 +246,32 @@ test("owner helper reopens only a complete provenance-bound machine closure and 
   assert.equal(f.writes.length, 1);
   assert.equal(f.pr.labels.length, 3);
   assert(f.writes[0].includes(`${root}/pulls/7`));
+});
+
+test("owner handoff restores only its bot-deleted signed ref before the verified owner reopen", async () => {
+  const f = fixture();
+  f.flags.missingRef = true;
+  f.events.push({
+    id: 4,
+    event: "head_ref_deleted",
+    actor: { login: "dependabot[bot]", type: "Bot" },
+    created_at: new Date(start + 5000).toISOString(),
+  });
+  assert(await assistRequest(f));
+  assert.equal(f.writes.length, 2);
+  assert(f.writes[0].includes(`${root}/git/refs`));
+  assert(f.writes[0].includes(`sha=${head}`));
+  assert(f.writes[1].includes("state=open"));
+  assert.equal(f.pr.labels.length, 3);
+});
+
+test("a deletion racing the final owner reopen permits one guarded restoration/reopen retry", async () => {
+  const f = fixture();
+  f.flags.deleteDuringOpen = true;
+  assert(await assistRequest(f));
+  assert.equal(f.writes.filter((args) => args.includes("state=open")).length, 2);
+  assert.equal(f.writes.filter((args) => args.includes(`${root}/git/refs`)).length, 1);
+  assert.equal(f.pr.state, "open");
 });
 
 test("unmarked, human, obsolete, author-spoofed, unsigned and changed-head closures never reopen", async () => {

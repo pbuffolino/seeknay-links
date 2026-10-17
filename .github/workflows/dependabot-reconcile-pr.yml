@@ -69,7 +69,9 @@ jobs:
       DEPENDABOT_SHA: ${{ needs.inspect.outputs.sha }}
       DEPENDABOT_METADATA: ${{ needs.inspect.outputs.dependencies }}
     permissions:
-      contents: read
+      # Existing publisher capability, limited in code to recreating an absent
+      # owned Dependabot head at its original verified signed SHA.
+      contents: write
       pull-requests: write
       actions: write
       security-events: read

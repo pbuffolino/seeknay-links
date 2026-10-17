@@ -6,7 +6,12 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createHash } from "node:crypto";
 import { githubRequest, safeDependencyPR, protectedBranch } from "./merge-dependabot.mjs";
-import { ownedIntent, listAll, intentLabel } from "./native-dependabot-refresh.mjs";
+import {
+  ownedIntent,
+  listAll,
+  intentLabel,
+  restoreOwnedRef,
+} from "./native-dependabot-refresh.mjs";
 import { validOwnerRequest } from "./owner-refresh-protocol.mjs";
 
 const exec = promisify(execFile);
@@ -201,10 +206,32 @@ export async function assistRequest({
     return { pr, closureId: states[0].id };
   }
   if (!(await verify())) return false;
+  const restored = new Set();
+  const restoration = {
+    env: {
+      GITHUB_REPOSITORY: repo,
+      DEPENDABOT_PR: String(value.number),
+      DEPENDABOT_SHA: value.head,
+      DEPENDABOT_METADATA: JSON.stringify(value.dependencies),
+    },
+    request,
+    expectedBase: value.base,
+    restored,
+  };
+  await restoreOwnedRef(restoration);
   const final = await verify();
   if (!final || !validOwnerRequest(value, now()))
     throw new Error("Owner refresh state changed before reopening");
-  await request("api", "--method", "PATCH", `${root}/pulls/${value.number}`, "-f", "state=open");
+  try {
+    await request("api", "--method", "PATCH", `${root}/pulls/${value.number}`, "-f", "state=open");
+  } catch (error) {
+    // A deletion can race the preceding ref check. Retry once only after proving
+    // and restoring that exact missing signed bot ref, never for an unrelated 422.
+    if (error.status !== 422 || !(await restoreOwnedRef(restoration))) throw error;
+    if (!(await verify()) || !validOwnerRequest(value, now()))
+      throw new Error("Owner refresh changed before the bounded reopen retry", { cause: error });
+    await request("api", "--method", "PATCH", `${root}/pulls/${value.number}`, "-f", "state=open");
+  }
   const open = await request("api", `${root}/pulls/${value.number}`);
   if (
     open.state !== "open" ||
