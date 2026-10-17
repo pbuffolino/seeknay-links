@@ -38,7 +38,7 @@ export async function assistOwnerCycle({
       });
     },
   };
-  async function verify({ cleanup = false } = {}) {
+  async function verify({ cleanup = false, allowChanged = cleanup } = {}) {
     const active = await request("api", `${root}/actions/runs/${run.id}`);
     if (
       !trustedRun(active, run.id, value.workflowSha, run.workflow_id) ||
@@ -49,19 +49,35 @@ export async function assistOwnerCycle({
     const user = await request("api", "user");
     if (!owner(user)) throw new Error("Owner cycle requires existing owner authentication");
     const pr = await request("api", `${root}/pulls/${value.number}`);
-    const [files, commits] = await Promise.all([
-      request("api", `${root}/pulls/${value.number}/files?per_page=100`),
-      request("api", `${root}/pulls/${value.number}/commits?per_page=100`),
-    ]);
+    const changedHead =
+      allowChanged &&
+      pr.state === "open" &&
+      pr.merged === false &&
+      pr.head?.sha !== value.head &&
+      /^[a-f0-9]{40}$/.test(pr.head?.sha || "");
+    const [files, commits] = changedHead
+      ? [null, null]
+      : await Promise.all([
+          request("api", `${root}/pulls/${value.number}/files?per_page=100`),
+          request("api", `${root}/pulls/${value.number}/commits?per_page=100`),
+        ]);
     if (
-      !safeDependencyPR(
-        { ...pr, state: "open" },
-        files,
-        commits,
-        repo,
-        value.head,
-        value.dependencies
-      ) ||
+      (!changedHead &&
+        !safeDependencyPR(
+          { ...pr, state: "open" },
+          files,
+          commits,
+          repo,
+          value.head,
+          value.dependencies
+        )) ||
+      (changedHead &&
+        (pr.number !== value.number ||
+          pr.draft ||
+          pr.user?.login !== "dependabot[bot]" ||
+          pr.head?.repo?.full_name !== repo ||
+          pr.base?.repo?.full_name !== repo ||
+          pr.base?.ref !== "main")) ||
       pr.merged !== false ||
       !["open", "closed"].includes(pr.state)
     )
@@ -95,7 +111,13 @@ export async function assistOwnerCycle({
       Date.parse(attached.created_at) < value.createdAt - 1000 ||
       Date.parse(attached.created_at) < Date.parse(run.created_at) ||
       Date.parse(attached.created_at) > Date.parse(artifact.created_at) ||
-      !(await ownerClosureGrant(pr, events, request, false, grant.name))
+      !(await ownerClosureGrant(
+        { ...pr, head: { ...pr.head, sha: value.head } },
+        events,
+        request,
+        false,
+        grant.name
+      ))
     )
       throw new Error("Owner cycle grant is untrusted or unrelated to this artifact");
     const states = events.filter((event) => ["closed", "reopened"].includes(event.event));
@@ -134,7 +156,7 @@ export async function assistOwnerCycle({
     }
     if (!cleanup && !validOwnerRequest(value, now()))
       throw new Error("Owner cycle request expired");
-    return { pr, latest, newStates };
+    return { pr, latest, newStates, files, commits, changedHead };
   }
   async function reopen() {
     const current = await verify({ cleanup: true });
@@ -178,7 +200,13 @@ export async function assistOwnerCycle({
     )
       throw new Error("Owner cycle reopen receipt failed");
   }
-  const initial = await verify();
+  const initial = await verify({ allowChanged: true });
+  if (initial.changedHead) {
+    console.log(
+      "Open changed head observed without writes; backend must collect fresh metadata and scans"
+    );
+    return true;
+  }
   if (value.recoverOnly) {
     await reopen();
     return true;
@@ -202,7 +230,9 @@ export async function assistOwnerCycle({
   try {
     const final = await verify();
     if (final.pr.state !== "open") throw new Error("Owner cycle PR is not open before closure");
-    await request(
+    if (value.expiresAt - now() < 125000)
+      throw new Error("Insufficient grant lifetime for the bounded close/reopen requests");
+    const closed = await request(
       "api",
       "--method",
       "PATCH",
@@ -210,6 +240,70 @@ export async function assistOwnerCycle({
       "-f",
       "state=closed"
     );
+    // All network guards just passed. The exact immutable signed SHA binds the
+    // cached complete file/commit evidence to this native close receipt.
+    if (
+      closed?.state !== "closed" ||
+      closed.merged !== false ||
+      closed.number !== value.number ||
+      closed.head?.ref !== final.pr.head.ref ||
+      !safeDependencyPR(
+        { ...closed, state: "open" },
+        final.files,
+        final.commits,
+        repo,
+        value.head,
+        value.dependencies
+      )
+    )
+      throw new Error("Owner close receipt changed signed eligibility; guarded recovery required");
+    // Reopen immediately. Long verification waits here let Dependabot delete the
+    // head. Full receipt/timeline checks and guarded finally recovery follow.
+    let opened;
+    try {
+      opened = await request(
+        "api",
+        "--method",
+        "PATCH",
+        `${root}/pulls/${value.number}`,
+        "-f",
+        "state=open"
+      );
+    } catch (error) {
+      // A deletion can still race a slow native request. Recovery is allowed only
+      // after the existing complete guards prove and restore that absent ref.
+      if (error.status !== 422) throw error;
+      await verify({ cleanup: true });
+      if (!(await restoreOwnedRef(restoration))) throw error;
+      await reopen();
+      opened = await request("api", `${root}/pulls/${value.number}`);
+    }
+    if (
+      opened?.state !== "open" ||
+      opened.merged !== false ||
+      opened.number !== value.number ||
+      opened.draft ||
+      opened.user?.login !== "dependabot[bot]" ||
+      opened.head?.repo?.full_name !== repo ||
+      opened.base?.repo?.full_name !== repo ||
+      opened.base?.ref !== "main" ||
+      opened.head?.ref !== final.pr.head.ref ||
+      !/^[a-f0-9]{40}$/.test(opened.head?.sha || "")
+    )
+      throw new Error("Owner immediate reopen receipt failed");
+    const post = await verify({ cleanup: true });
+    const closure = post.newStates.filter((event) => event.event === "closed").at(-1);
+    if (
+      post.pr.state !== "open" ||
+      !closure ||
+      Date.parse(closure.created_at) < value.createdAt - 1000 ||
+      Date.parse(closure.created_at) > value.expiresAt ||
+      closure.id <= (final.latest?.id || 0) ||
+      post.latest?.event !== "reopened" ||
+      post.latest.id <= closure.id ||
+      !owner(post.latest.actor)
+    )
+      throw new Error("Owner fast cycle post-receipt timeline did not verify");
   } finally {
     // A successful close followed by process termination is also recoverable from the grant.
     await reopen();
