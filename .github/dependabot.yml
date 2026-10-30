@@ -9,6 +9,11 @@ updates:
       timezone: "America/New_York"
     cooldown:
       default-days: 3
+    # CodeQL requires init and analyze on the same version, so update them in one PR.
+    groups:
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
     commit-message:
       prefix: "chore(deps)"
     labels:

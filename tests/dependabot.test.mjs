@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 import {
   safeDependencyPR,
   protectedBranch,
@@ -141,6 +142,28 @@ test("action updates permit only matched SHA pins in existing workflows", () => 
   }
   delete data.files[0].patch;
   assert.equal(safe(data), false);
+});
+test("grouped CodeQL updates pass the pin gate unless a major version changes", () => {
+  const data = fixture();
+  const next = "b".repeat(40);
+  data.dependencies[0].packageEcosystem = "github_actions";
+  data.dependencies.push({ ...data.dependencies[0] });
+  const init = `-      - uses: github/codeql-action/init@${sha} # v4.39.1\n+      - uses: github/codeql-action/init@${next} # v4.40.0`;
+  const analyze = `-      - uses: github/codeql-action/analyze@${sha} # v4.39.1\n+      - uses: github/codeql-action/analyze@${next} # v4.40.0`;
+  data.files[0] = {
+    filename: ".github/workflows/codeql.yml",
+    status: "modified",
+    patch: `@@ -34 +34 @@\n${init}\n@@ -39 +39 @@\n${analyze}`,
+  };
+  assert.equal(safe(data), true);
+  const major = analyze.replace("# v4.40.0", "# v5.0.0");
+  data.files[0].patch = `@@ -34 +34 @@\n${init}\n@@ -39 +39 @@\n${major}`;
+  assert.equal(safe(data), false);
+});
+test("Dependabot config groups CodeQL action steps", async () => {
+  const config = await fs.readFile(".github/dependabot.yml", "utf8");
+  const actions = config.slice(config.indexOf('"github-actions"'), config.indexOf('"npm"'));
+  assert.match(actions, /groups:\s+codeql-action:\s+patterns:\s+- "github\/codeql-action\*"/);
 });
 test("requires all named checks from GitHub Actions with admin enforcement", () => {
   const data = fixture();
