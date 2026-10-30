@@ -3,6 +3,7 @@ import globals from "globals";
 import html from "eslint-plugin-html";
 
 export default [
+  { ignores: [".claude/", ".worktrees/"] },
   js.configs.recommended,
   {
     files: ["**/*.js", "**/*.mjs"],

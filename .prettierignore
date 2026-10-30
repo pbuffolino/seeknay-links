@@ -1,3 +1,8 @@
 # Auto-generated artifacts
 assets/social-metrics.json
 package-lock.json
+
+# Local-only paths ignored through .git/info/exclude or global excludes
+.claude/
+.worktrees/
+handoff.md
