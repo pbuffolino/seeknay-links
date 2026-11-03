@@ -16,7 +16,7 @@ async function gh(...args) {
     });
   }
 }
-export function matchingRun(runs, sha, number, workflowPath = ".github/workflows/ci.yml") {
+export function matchingRun(runs, sha, number, workflowPath = ".github/workflows/codeql.yml") {
   return runs.find(
     (run) =>
       run.head_sha === sha &&
@@ -40,10 +40,66 @@ export function safeMetricsPR(pr, files, repo) {
     files[0].status === "modified"
   );
 }
+export function validateMetricsBlob(blob) {
+  if (
+    blob?.type !== "file" ||
+    blob.encoding !== "base64" ||
+    !Number.isSafeInteger(blob.size) ||
+    blob.size > 65536 ||
+    blob.size < 1 ||
+    typeof blob.content !== "string" ||
+    blob.content.length > 100000
+  )
+    throw new Error("Invalid metrics content response");
+  const encoded = blob.content.replace(/\s/g, "");
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) || encoded.length % 4 !== 0)
+    throw new Error("Invalid metrics encoding");
+  const bytes = Buffer.from(encoded, "base64");
+  if (bytes.length !== blob.size) throw new Error("Metrics content size mismatch");
+  let value;
+  try {
+    value = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    throw new Error("Invalid metrics JSON");
+  }
+  const networks = ["youtube", "instagram", "tiktok", "bluesky", "facebook"];
+  const date = (item) => typeof item === "string" && Number.isFinite(Date.parse(item));
+  if (
+    !value ||
+    Array.isArray(value) ||
+    !date(value.updatedAt) ||
+    !date(value.lastAttemptAt) ||
+    Object.keys(value).some((key) => ![...networks, "updatedAt", "lastAttemptAt"].includes(key))
+  )
+    throw new Error("Invalid metrics document");
+  for (const network of networks) {
+    const metric = value[network];
+    if (
+      !metric ||
+      !Number.isSafeInteger(metric.count) ||
+      metric.count < 0 ||
+      !date(metric.lastSuccessAt) ||
+      !date(metric.lastAttemptAt) ||
+      typeof metric.display !== "string" ||
+      metric.display.length > 200 ||
+      Object.keys(metric).some(
+        (key) => !["count", "display", "lastSuccessAt", "lastAttemptAt", "lastError"].includes(key)
+      ) ||
+      (metric.lastError !== undefined && metric.lastError !== "Update failed")
+    )
+      throw new Error(`Invalid ${network} metrics`);
+  }
+  return value;
+}
+
 export async function publishMetrics({
   repo = process.env.GITHUB_REPOSITORY,
   number = process.env.METRICS_PR,
+  request = gh,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  now = Date.now,
 } = {}) {
+  const gh = request;
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo || "") || !/^\d+$/.test(number || ""))
     throw new Error("Invalid publication target");
   const pr = JSON.parse(await gh("api", `repos/${repo}/pulls/${number}`));
@@ -55,27 +111,30 @@ export async function publishMetrics({
     if (!safeMetricsPR(current, currentFiles, repo) || current.head.sha !== pr.head.sha)
       throw new Error("Metrics PR changed during publication");
   }
-  const startedAt = Date.now();
-  console.log("Waiting for pull-request CI for the verified metrics commit");
+  // Read only the generated data at the verified immutable PR head. Never run PR code.
+  const content = JSON.parse(
+    await gh("api", `repos/${repo}/contents/assets/social-metrics.json?ref=${pr.head.sha}`)
+  );
+  validateMetricsBlob(content);
+  const startedAt = now();
+  console.log("Metrics data validated; waiting for exact-head CodeQL");
   const deadline = startedAt + 10 * 60 * 1000;
-  let run;
   let codeql;
   const approvedRuns = new Set();
-  while (Date.now() < deadline) {
+  while (now() < deadline) {
     const response = JSON.parse(
       await gh(
         "api",
         `repos/${repo}/actions/runs?branch=${branch}&event=pull_request&head_sha=${pr.head.sha}&per_page=100`
       )
     );
-    run = matchingRun(response.workflow_runs, pr.head.sha, number);
     codeql = matchingRun(
       response.workflow_runs,
       pr.head.sha,
       number,
       ".github/workflows/codeql.yml"
     );
-    for (const candidate of [run, codeql]) {
+    for (const candidate of [codeql]) {
       if (candidate?.conclusion !== "action_required") continue;
       // Only the same-repository, metrics-only PR passed the guard above.
       if (!approvedRuns.has(candidate.id)) {
@@ -85,19 +144,19 @@ export async function publishMetrics({
         console.log("Approved a required workflow for the verified metrics-only PR");
       }
     }
-    const finished = [run, codeql].every(
+    const finished = [codeql].every(
       (candidate) => candidate?.status === "completed" && candidate.conclusion !== "action_required"
     );
     if (finished) break;
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+    await sleep(10000);
   }
   if (
-    ![run, codeql].every(
+    ![codeql].every(
       (candidate) => candidate?.status === "completed" && candidate.conclusion === "success"
     )
   )
-    throw new Error("Metrics commit CI or CodeQL did not succeed");
-  console.log("CI passed for metrics commit; requesting protected merge");
+    throw new Error("Metrics commit CodeQL did not succeed");
+  console.log("Metrics data and CodeQL passed; requesting protected merge");
   await verifyUnchangedPR();
   const result = JSON.parse(
     await gh(
@@ -114,7 +173,7 @@ export async function publishMetrics({
   if (!result.merged) throw new Error("Metrics merge was rejected");
   const merged = JSON.parse(await gh("api", `repos/${repo}/pulls/${number}`));
   if (!merged.merged) throw new Error("Metrics PR was not merged");
-  for (const workflow of ["ci.yml", "codeql.yml"])
+  for (const workflow of ["codeql.yml"])
     await gh(
       "api",
       "--method",

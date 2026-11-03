@@ -190,8 +190,8 @@ async function main() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch((error) => {
-    console.error(`::error::Dependency publication stopped: ${error.message}`);
-    process.exitCode = 1;
-  });
+  console.error(
+    "Hosted dependency publication is retired. Use local checks and independent Codex review."
+  );
+  process.exitCode = 1;
 }

@@ -372,15 +372,8 @@ export async function mergeDependabot({
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  mergeDependabot()
-    .then(async (sha) => {
-      if (process.env.GITHUB_OUTPUT) {
-        const { appendFile } = await import("node:fs/promises");
-        await appendFile(process.env.GITHUB_OUTPUT, `sha=${sha}\n`);
-      }
-    })
-    .catch((error) => {
-      console.error(`::error::Dependency merge stopped: ${error.message}`);
-      process.exitCode = 1;
-    });
+  console.error(
+    "Dependency auto-merge is retired. Run local checks and independent Codex review before an owner merge."
+  );
+  process.exitCode = 1;
 }

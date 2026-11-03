@@ -2,7 +2,7 @@
 
 A static link-in-bio site using HTML, CSS, JavaScript, and JSON. No framework or deployment build is required.
 
-[Live site](https://links.seeknay.com/) · [CI](https://github.com/pbuffolino/seeknay-links/actions/workflows/ci.yml) · [Report a bug or request a feature](https://github.com/pbuffolino/seeknay-links/issues/new/choose)
+[Live site](https://links.seeknay.com/) · [Report a bug or request a feature](https://github.com/pbuffolino/seeknay-links/issues/new/choose)
 
 ![Preview of the links page](assets/preview.png)
 
@@ -36,9 +36,7 @@ To deploy, select `main` and `/ (root)` in repository Settings → Pages. Enable
 
 ## Metrics publication
 
-The scheduled workflow runs at 14:17 UTC. It fetches public follower totals, opens or updates one metrics PR, validates that the PR contains only the metrics file, approves its token-authored CI and CodeQL runs, waits for that exact commit to pass, merges through branch protection, dispatches checks on `main`, and requests a Pages build. Only `assets/social-metrics.json` may be changed by that PR. CI jobs run in parallel. The Instagram profile is excluded from automated HTTP checks because it redirects CI clients to a rate-limited login page. Its URL and saved navigation are validated locally; verify the profile manually when changing it.
-
-Enable **Allow GitHub Actions to create and approve pull requests** in repository Settings → Actions → General. The workflow requests repository-scoped `contents`, `pull-requests`, `actions`, and `pages` write permissions. It uses the short-lived `GITHUB_TOKEN`; no GitHub personal access token is required. GitHub places token-authored PR runs in an approval-required state. The publisher approves only the named CI and CodeQL workflows for its same-repository, bot-authored, metrics-only PR at the verified SHA. Unexpected changes and failed checks stop publication. Token-authored merges also need explicit default-branch check dispatches and a legacy Pages build request. [GitHub workflow trigger documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+The scheduled workflow runs at 14:17 UTC. It fetches public follower totals, opens or updates one metrics-only PR, validates a bounded JSON schema at that exact SHA, waits for its CodeQL scan and requests a protected merge and Pages build. It cannot merge code changes. General code checks run locally with `npm run check:local`, with independent native Codex review before merge. The publisher retains the repository-scoped permissions needed for its generated-data PR, CodeQL approvals and Pages publication; no personal access token is required.
 
 Configure the relevant repository Actions secrets:
 
@@ -56,7 +54,7 @@ Do not manually edit the auto-managed metrics file. To add a platform, update th
 
 ## Security and edge configuration
 
-See [security and health operations](docs/security-operations.md) for the dependency auto-merge
+See [security and health operations](docs/security-operations.md) for the local checks and Codex review
 policy, required protections, weekly review, and read-only live verification. Use `npm run health:live`
 from a fresh default-branch checkout to check the deployed site and origin TLS.
 
@@ -81,6 +79,6 @@ This repository is public. Review staged files and generated assets for private 
 - `index.html`, `404.html`, `css/`, `js/`: runtime site, served directly by Pages.
 - `scripts/`: updater, guarded publication, saved-link generation, validation, and local HTTP server.
 - `tests/`: metrics failure tests, publication guards, and browser/accessibility checks.
-- `.github/workflows/`: parallel CI and daily metrics publication. Required checks must remain enabled before merging.
+- `.github/workflows/`: CodeQL and daily metrics publication. Code checks run locally; Codex reviews code before merge.
 
 [Contribution guide](.github/CONTRIBUTING.md). Site code is MIT licensed. The bundled Font Awesome SVGs are CC BY 4.0; see [their license](assets/icons/LICENSE.txt).

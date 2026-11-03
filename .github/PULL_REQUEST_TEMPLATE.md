@@ -12,8 +12,8 @@ Please include a summary of the change and which issue is fixed.
 ## Checklist
 
 - [ ] My code follows the style guidelines of this project
-- [ ] I have performed a self-review of my own code
+- [ ] Independent Codex code/security review is recorded for the exact candidate SHA
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
 - [ ] My changes generate no new warnings
-- [ ] I have tested my changes locally
+- [ ] `npm run check:local` results are recorded for the exact candidate SHA

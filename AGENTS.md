@@ -34,10 +34,12 @@ npm run update-metrics  # Fetch live follower counts (requires env vars; normall
 
 ---
 
-## CI/CD
+## Validation and publication
 
-- **`ci.yml`** — Runs on every push/PR: lint → link-check (Lychee) → `npm audit`
-- **`update-social-metrics.yml`** — Runs daily at 14:17 UTC; commits updated `social-metrics.json`
+- Run `npm run check:local` after `npm ci --ignore-scripts`, installing Playwright Chromium and the lychee CLI. Code tests, browser checks, lint, audit and links run locally.
+- Obtain independent native Codex code/security review on the exact candidate SHA; record review and local check results in the PR before merge. New source changes require fresh evidence. Do not equate absent hosted checks with local success.
+- Hosted CodeQL remains for GitHub-integrated code scanning. Native Pages and `update-social-metrics.yml` remain for deployment and daily generated-data publication. The publisher validates only its generated metrics data and cannot merge code.
+- Hosted general CI and dependency auto-merge/reconciliation are retired. Dependabot still opens updates, which require local checks and Codex review. See [security operations](docs/security-operations.md).
 
 ---
 
@@ -59,5 +61,5 @@ npm run update-metrics  # Fetch live follower counts (requires env vars; normall
 
 - `assets/social-metrics.json` is auto-managed by CI; manual edits will be overwritten on the next daily run
 - The CSP in `index.html` must be updated if new external script or style domains are added
-- `npm audit --audit-level=high` runs in CI — keep dependencies free of high/critical vulnerabilities
+- `npm audit --audit-level=low` runs in the local gate — keep dependencies free of high/critical vulnerabilities
 - **All changes should be reviewed for privacy/security risk before committing** — this is a public repository

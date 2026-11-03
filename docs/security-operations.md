@@ -1,198 +1,47 @@
 # Security and health operations
 
-## Dependency updates
+## Local code validation and Codex review
 
-Dependabot checks npm and GitHub Actions daily. Routine version updates wait three days after
-release. The cooldown does not delay security updates. Dependabot security updates and alerts
-must remain enabled in repository settings.
-[Dependabot configuration reference](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference).
+Owner policy, November 3, 2026: run code checks locally and obtain independent native
+Codex review before merging code, configuration and dependency changes. Hosted CI
+and hourly dependency auto-merge/reconciliation workflows have been removed. The
+retired helper CLIs stop before any provider action; fixtures under
+`tests/fixtures/retired-workflows/` preserve historical safety regression cases.
+Dependabot alerts, security updates and routine update PRs remain enabled.
 
-The Dependabot auto-merge workflow permits patch and minor updates. It verifies the PR author,
-same-repository branch, single signed Dependabot commit, original event SHA, and metadata for
-every updated dependency. Major updates, maintainer changes, unknown metadata, renamed files,
-and unexpected changes require review. npm updates can modify only `package.json` and
-`package-lock.json`. Action updates can modify only existing workflow action SHA pins, keeping
-the action identity and major version. Missing or truncated patches stop automatic merging.
-
-The privileged merge job checks out only the trusted default branch. It never executes code
-from the dependency PR and never installs packages. Metadata collection has read-only access.
-CI runs separately without repository secrets. Keep commit verification enabled in
-`dependabot/fetch-metadata`.
-[GitHub workflow security guidance](https://docs.github.com/en/actions/reference/security/secure-use).
-
-Before merging, the publisher requires successful pull-request CI for the exact PR head and
-branch protection with `lint`, `link-check`, `security-audit`, `browser-test`, and
-`dependency-review`, `Analyze (actions)`, and `Analyze (javascript-typescript)` checks from
-GitHub Actions. It also verifies both CodeQL analyses belong to the exact PR head, have no
-coverage warnings, and have no unresolved alerts on the PR reference. Additional native protections still apply.
-The merge request includes the expected head SHA and does not bypass protection. The job
-checks ancestry against the latest base revision immediately before merging, in addition to
-native strict protection. Its token reads the public branch summary rather than requiring
-administration access.
-The trusted reconciler runs hourly, on dependency PR events, and by manual dispatch on `main`.
-It processes a rotating batch of at most six PRs serially. One repository-wide workflow
-concurrency group prevents overlapping dependency publishers. Each merge attempt retains a
-twelve-minute check deadline; refresh waits at most five minutes and publication verification
-at most ten minutes. A shared 85-minute deadline stops further GitHub requests, leaving time
-to report within a 90-minute maintenance budget. Failed candidates do not cancel the rest of
-the batch. Verified major upgrades are recorded for review and skipped; unknown metadata,
-invalid signatures, changed heads, and unexpected scopes fail closed.
-
-Before requesting a refresh, the reconciler can close an untouched signed patch/minor npm
-update that is already applied. It reads the original signed commit's sole parent, proposed
-head, and current protected main JSON as data, without executing PR code or installing PR
-dependencies. Every requested change in every original changed JSON file must be satisfied.
-Changed lockfile package entries must match completely, including resolved URLs, integrity,
-flags, and metadata. Matching a version alone is insufficient. Unrelated main changes do not
-count as satisfying a requested change. Empty/format-only deltas are not automatically closed.
-Main CI, CodeQL, and Pages must already be verified. Complete eligibility,
-JSON comparisons, main health, and live head/base are rechecked before closure; resulting
-closed/unmerged/head/base state must verify. The receipt records `ALREADY APPLIED`, never a
-merge. Unknown or incomplete evidence leaves the PR for review. No branch or review is changed.
-
-Scheduled/event runs merge fresh eligible heads and defer stale ones without state churn.
-Owner-assisted manual runs use the existing local owner authentication for a complete native
-close/reopen cycle. The machine first verifies a signed eligible patch/minor PR and attaches
-its reserved `dependency-refresh-intent` and PR/head/base/attempt labels. It publishes a
-short-lived data-only request artifact and a durable machine-issued owner grant. The local
-driver repeats complete eligibility, exact run/artifact/inspection, main/ancestry and grant
-checks immediately before closing as the authenticated owner. The native close receipt must
-match that exact signed head and cached complete eligibility evidence. The helper then
-reopens immediately, without network verification between those two writes, and performs
-full post-cycle state, ownership, timeline, grant and base verification. A deletion racing a
-slow request still requires complete guarded recovery. An already open changed head permits
-only nonwriting cleanup; its eligibility remains unverified until fresh backend metadata.
-A verified reopen alone
-is not refresh proof: the backend waits for a new signed bot head and repeats metadata, CI,
-CodeQL and native merge checks. The helper never comments, merges, removes labels, updates an
-existing ref, or deletes a branch. Public rebase comments remain disabled.
-
-Both helper and backend attempt open-state recovery in `finally`. Later sweeps recognize an
-interrupted owner closure only through its machine-attached, exact trusted dispatch grant,
-successful inspection, unchanged signed head and a single owner closure within the grant's
-short authorization window. Unmarked, unrelated human, obsolete, duplicated or unknown
-closures remain closed. Existing labels and reviews are preserved; only authenticated
-machine markers are cleared after verified open state. Grant definitions remain as bounded
-attempt evidence. A fresh inspected artifact can recover an older authenticated closure;
-it does not reuse an expired artifact. A recovery-only grant never authorizes a new close.
-The compact grant stores full head/base/workflow revisions and timestamps within GitHub's
-label limits. Requests are bounded to two cycles per PR/base and never repeat an unchanged
-head/base. Keep the local host available throughout the assisted run.
-
-Dispatch on protected main with `owner-assisted=true`, then run the driver immediately using
-the returned run ID and that dispatch's full workflow SHA:
+Prepare locked tooling with `npm ci --ignore-scripts`, install Playwright Chromium
+with `npx playwright install chromium`, and install the `lychee` CLI. Then run:
 
 ```bash
-gh workflow run dependabot-automerge.yml --ref main -f owner-assisted=true
-node scripts/dependency-owner-driver.mjs --run RUN_ID --sha WORKFLOW_SHA
+npm run check:local
 ```
 
-Use existing owner `gh` authentication. The driver refuses token/host overrides and never
-retrieves credentials or changes scopes. It waits through GitHub concurrency states and
-requires exact repository, owner actor, workflow path/ID/SHA, reusable workflow SHA, run attempt,
-successful inspection job, artifact identity/digest/size/expiry, complete metadata/signature/scope,
-protected base, and unreplayed machine grant/closure evidence before any PR write. ZIP contents
-are bounded JSON data with exactly one expected archive path; they are never executed or
-extracted into the checkout. Earlier-attempt artifacts are skipped. Unknown current requests
-fail closed. The driver waits for backend completion; its receipt is not a substitute for
-independently verifying merges, main CI/CodeQL, Pages and live resources. Keep the local host
-available for the whole assisted run. No owner driver is needed for a fresh eligible head.
+This executes lint/format checks, unit/site validation, an all-severity npm audit,
+Chromium browser/accessibility tests and the same external link checks as the old
+hosted workflow. The Instagram profile remains excluded because it challenges HTTP
+clients; verify it separately when changing that link. External link/audit network
+failures remain incomplete checks, not passing results. CodeQL remains hosted for
+GitHub-integrated code-scanning/merge protection; it does not replace Codex review.
+Record the exact candidate SHA, local results and independent code/security review
+dispositions in each PR. A changed candidate requires updated evidence. Never
+infer local success from the absence of hosted CI or weaken remaining CodeQL rules.
 
-Dependabot may delete a bot head while its machine-owned PR is closed. Recovery may recreate
-only an absent exact `refs/heads/dependabot/...` reference at the original verified signed SHA,
-using GitHub's native create-reference API. It never updates or force-pushes an existing ref,
-creates a commit, or writes main. Full eligibility, authenticated closure/intent, a subsequent
-Dependabot deletion event, protected base/ancestry, and unchanged closure/base are required.
-The restored ref must read back at the exact signed SHA before reopening. Changed existing
-refs, human/obsolete closures, and repeated deletions require review. The refresh job reuses
-the publisher's existing contents-write capability for this bounded recovery when GitHub
-permits it. GitHub can deny Actions reference creation when workflow permissions are needed.
-The owner helper restores through the existing owner SSH transport after repeating its full
-trusted run, grant, signed eligibility, closure/deletion, protected base and absent-ref checks.
-It verifies both existing owner API identity and SSH identity, plus the exact SSH origin.
-An isolated bare repository fetches only the PR head as data, verifies the complete signed
-commit object's hash, and uses an explicit empty-expected lease on the exact bot ref. Git
-atomically requires that destination ref to be absent. An existing ref, including an identical
-one, is never accepted as a new creation. The helper requires a native new-branch receipt and
-exact API SHA readback. Hooks, inherited Git configuration, credential helpers and arbitrary
-SSH commands are disabled; no PR code is checked out or executed. Credentials and scopes are
-never changed. Unknown API errors during any prerequisite guard stop the operation; they do
-not trigger a fallback. The owner helper does not attempt a REST ref write.
-[Git create-only lease semantics](https://git-scm.com/docs/git-push#Documentation/git-push.txt---force-with-leaseltrefnamegtltexpectgt).
+## Necessary hosted publication
 
-If cleanup cannot restore/reopen with available permissions, it retains durable markers and
-reports failure for owner-assisted recovery. An expired artifact never authorizes a new owner
-action; only an already started helper's bounded `finally` cleanup may restore its own
-verified closure. Later owner recovery requires a fresh artifact. Obsolete PRs closed without refresh intent remain closed,
-including any branches Dependabot deleted for them.
-[GitHub native reference creation](https://docs.github.com/en/rest/git/refs#create-a-reference).
+The daily metrics publisher still collects and publishes its own generated data.
+Its trusted workflow validates a closed, bounded JSON schema fetched from the exact
+verified metrics-only PR SHA, waits for that SHA's CodeQL analyses, then uses the
+normal protected merge API and requests Pages publication. It never runs candidate
+code or tests and cannot merge code changes. There is no general CI dispatch.
+CodeQL and native Pages deployment remain hosted. Secret scanning/push protection
+and Dependabot alerts remain enabled. No self-hosted runner or new scheduler is
+registered by this migration.
 
-Persistent label definitions and timeline evidence bound attempts to at most two per PR/base.
-An unchanged PR/head/base is never requested twice, and changed heads wait at least ten minutes
-between requests. Keep reserved label definitions as attempt evidence after removing their
-PR attachments. Public rebase comments remain disabled in scheduled/manual/event workflows;
-the legacy comment helper still requires explicit owner approval and its separate repository
-variable, which must remain unset.
-The reconciler never rebases or adds commits itself. A changed head always goes through fresh
-signature, metadata, scope, CI, CodeQL, and native protection checks before merging.
-When reopening creates approval-required CI or CodeQL runs, the publisher uses its existing
-`actions: write` permission to approve only the exact same-repository PR, signed eligible head,
-branch, `pull_request` event, and known CI/CodeQL workflow path. Complete dependency and native
-protection guards are repeated, and run identity is re-fetched immediately before approval.
-Approved runs remain pending until successful; `action_required` is not treated as a failed
-test. Unknown runs are never approved, and real current failures still block merging.
-[Dependabot rebase triggers](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#rebase-strategy),
-[PR labels and permissions](https://docs.github.com/en/rest/issues/labels#add-labels-to-an-issue).
-
-Metadata collection runs with read-only permissions. A small Node preload supplies a fresh
-REST-fetched PR payload to the immutable `dependabot/fetch-metadata` action before its context
-initializes. It does not override GitHub default variables in YAML or modify the runner's
-`event.json`. Commit verification remains enabled. A read-only CI job exercises the actual
-pinned action against an open dependency PR. The site tooling keeps Node 22; the pinned
-metadata action uses its own declared Node runtime.
-[GitHub Dependabot automation guidance](https://docs.github.com/en/code-security/tutorials/secure-your-dependencies/automate-dependabot-with-actions).
-
-After verifying the merge, the publishers explicitly dispatch CI and CodeQL on `main`, then
-request a legacy Pages build. Before processing the next candidate, a separate read-only job
-requires successful exact-revision main CI and CodeQL workflows, both warning-free CodeQL
-categories, no open main scan alerts, a successful exact-revision Pages build and deployment,
-and matching live HTML/resources. Verification jobs check out literal protected `main` with
-credentials disabled and assert its local HEAD matches the expected publication SHA before
-setup or installation. The latest result per CodeQL category controls retries;
-an older failed attempt does not invalidate a newer successful analysis. Main advancing during
-verification requires a new receipt. Origin TLS remains a separate weekly security check and
-is never bypassed or repaired by the publisher.
-
-Every reconciliation first recovers missing main checks/publication and verifies delivery,
-even with no open PRs. This recovers an interrupted publisher after a valid merge without
-reverting the dependency fix. The dependency publisher needs `actions: write` for those
-dispatches. A build
-request is not delivery proof. Verify the completed deployment and live resources. If a build
-request fails after a successful merge, investigate the failed run and request a Pages rebuild
-after verifying the merged revision. Do not revert a valid security fix just because publication
-failed. [Workflow trigger behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
-
-## Continuous checks
-
-The metrics publisher approves and waits for both CI and CodeQL on its verified metrics-only
-PR. Workflow identity, PR identity, branch, and SHA must all match before approving a run.
-
-CI runs on pull requests, pushes to `main`, manual dispatch, and a daily schedule. The npm audit
-blocks all reported vulnerability severities, including development dependencies. Dependency
-review blocks newly introduced vulnerable dependencies on PRs. Installs disable package
-lifecycle scripts. This project currently needs none for its test tools.
-
-Keep the explicit CodeQL workflow enabled for JavaScript/TypeScript and GitHub Actions. Check that
-both languages actually produce successful analyses; enabled settings alone do not prove
-coverage. Require their checks in branch protection after the initial scans succeed. Keep
-the CodeQL merge protection ruleset active. The workflow scans every pull request, including
-dependency updates, without running a repository build or install. It uploads same-repository
-PR results against the exact head. The publisher separately checks analyses and alerts before merging.
-[Code scanning merge protection limitations](https://docs.github.com/en/code-security/concepts/code-scanning/merge-protection).
-Secret
-scanning and push protection must remain enabled. Keep the Actions default token read-only,
-third-party actions restricted, and full SHA pinning required.
-[CodeQL and Dependabot permissions](https://docs.github.com/en/code-security/reference/code-scanning/troubleshoot-analysis-errors/resource-not-accessible).
+Branch protection must no longer require retired `lint`, `link-check`,
+`security-audit`, `browser-test`, `dependency-review` or
+`dependency-metadata-adapter` jobs. Keep CodeQL protection and all unrelated
+protections. This requires an explicit settings migration and independent readback;
+removing YAML alone does not update a protection rule.
 
 ## Weekly review
 
@@ -234,8 +83,4 @@ provisioning and DNS changes before switching modes; an invalid origin certifica
 delivery. Do not mark this risk resolved merely because the public edge certificate works.
 [Cloudflare Full TLS](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/).
 
-Technical repairs should use a narrowly scoped PR with relevant verification. Every visible
-copy, styling, layout, control, or interaction change needs explicit owner approval. Do not
-change credentials, DNS, TLS settings, alert dismissals, or branch protections during a routine
-weekly review. Automatic merging is limited to the dependency policy above. To stop it,
-disable the Dependabot auto-merge workflow in Actions. Dependabot alerts and CI remain active.
+Technical repairs use a narrowly scoped PR with local validation and independent Codex review. Every visible copy, styling, layout, control or interaction change needs explicit owner approval. Do not change credentials, DNS, TLS settings or alert dismissals during a routine review. Dependency updates now require the same local validation and Codex review as other code changes.

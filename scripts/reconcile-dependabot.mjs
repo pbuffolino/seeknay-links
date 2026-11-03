@@ -264,8 +264,8 @@ async function main() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch((error) => {
-    console.error(`::error::Dependency reconciliation stopped: ${error.message}`);
-    process.exitCode = 1;
-  });
+  console.error(
+    "Hosted dependency reconciliation is retired. Review dependency PRs locally with Codex."
+  );
+  process.exitCode = 1;
 }
