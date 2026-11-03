@@ -7,11 +7,11 @@ First off, thanks for taking the time to contribute!
 1. **Fork the repository**
 2. **Create a new branch** (`git checkout -b feature/amazing-feature`)
 3. **Make your changes**
-4. **Run tests** (`npm test`) - This runs lint, formatting, unit tests, and site validation
+4. **Run local checks** (`npm ci --ignore-scripts`, install Chromium and lychee, then `npm run check:local`)
 5. **Commit your changes** (`git commit -m 'feat: Add amazing feature'`)
 6. **Run browser checks** (`npx playwright install chromium && npm run test:browser`)
 7. **Push to the branch** (`git push origin feature/amazing-feature`)
-8. **Open a Pull Request**
+8. **Open a Pull Request** with the exact candidate SHA, local check results and independent native Codex code/security review. Fix blocking findings and refresh evidence after source changes. Hosted CodeQL remains a separate required security check.
 
 ## Coding Standards
 

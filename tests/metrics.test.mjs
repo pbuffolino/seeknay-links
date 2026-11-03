@@ -117,11 +117,11 @@ test("publication accepts only the exact PR workflow and trusted metrics-only ch
     head_sha: "a".repeat(40),
     head_branch: "chore/update-social-metrics",
     event: "pull_request",
-    path: ".github/workflows/ci.yml",
+    path: ".github/workflows/codeql.yml",
     pull_requests: [{ number }],
   };
   assert.equal(matchingRun([run], run.head_sha, number), run);
-  const scan = { ...run, path: ".github/workflows/codeql.yml" };
+  const scan = { ...run, path: ".github/workflows/ci.yml" };
   assert.equal(matchingRun([scan], run.head_sha, number), undefined);
   assert.equal(matchingRun([scan], run.head_sha, number, scan.path), scan);
   assert.equal(

@@ -600,9 +600,9 @@ test("the workflow CLI defaults to native refresh without enabling comment reque
     new URL("../scripts/reconcile-dependabot.mjs", import.meta.url),
     "utf8"
   );
-  assert.match(cli, /mode === "refresh"[\s\S]*?await refreshNative\(/);
+  assert.match(cli, /Hosted dependency reconciliation is retired/);
   const workflow = await fs.readFile(
-    new URL("../.github/workflows/dependabot-reconcile-pr.yml", import.meta.url),
+    new URL("./fixtures/retired-workflows/dependabot-reconcile-pr.yml", import.meta.url),
     "utf8"
   );
   assert(!workflow.includes("DEPENDABOT_REBASE_COMMENTS_APPROVED"));

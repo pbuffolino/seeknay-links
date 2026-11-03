@@ -14,7 +14,8 @@
     "sync-links": "node scripts/sync-links.mjs && npm run version-assets",
     "serve": "node scripts/serve.mjs",
     "health:live": "node scripts/live-health.mjs",
-    "version-assets": "node scripts/version-assets.mjs && prettier --write index.html 404.html"
+    "version-assets": "node scripts/version-assets.mjs && prettier --write index.html 404.html",
+    "check:local": "bash scripts/check-local.sh"
   },
   "author": "seeknay",
   "license": "MIT",

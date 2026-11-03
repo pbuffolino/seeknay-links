@@ -437,11 +437,8 @@ export async function ownerDriver({
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const args = process.argv.slice(2);
-  if (args.length !== 4 || args[0] !== "--run" || args[2] !== "--sha")
-    throw new Error("Expected --run ID --sha WORKFLOW_SHA");
-  ownerDriver({ runId: Number(args[1]), sha: args[3] }).catch((error) => {
-    console.error(`Owner dependency driver stopped: ${error.message}`);
-    process.exitCode = 1;
-  });
+  console.error(
+    "The hosted dependency owner driver is retired. Use local checks and independent Codex review."
+  );
+  process.exitCode = 1;
 }

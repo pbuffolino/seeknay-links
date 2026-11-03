@@ -506,7 +506,10 @@ test("verified action majors are reviewed without accepting action identity or c
 });
 
 test("privileged workflow accepts only trusted main schedules/dispatches or authentic bot events", async () => {
-  const source = await fs.readFile(".github/workflows/dependabot-automerge.yml", "utf8");
+  const source = await fs.readFile(
+    "tests/fixtures/retired-workflows/dependabot-automerge.yml",
+    "utf8"
+  );
   const expression = source.match(/ {2}recover-publication:\n {4}if: ([^\n]+)/)[1];
   const group = source.match(/ {2}group: \$\{\{ (.*?) \}\}/)[1];
   const github = {
