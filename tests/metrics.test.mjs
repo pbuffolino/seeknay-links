@@ -7,6 +7,7 @@ import {
   countFrom,
   safeUpdate,
   parseTikTokProfile,
+  tiktokFollowerCount,
   refreshMetrics,
   main,
   createFetchers,
@@ -167,4 +168,77 @@ test("TikTok transport failure falls back to the requested profile", async () =>
   });
   assert.equal(await fetchers.tiktok(), 23);
   assert.equal(calls, 2);
+});
+
+test("TikTok prefers the exact statsV2 count over the rounded stats count", () => {
+  assert.equal(tiktokFollowerCount({ followerCount: 11300 }, { followerCount: "11282" }), 11282);
+  assert.equal(tiktokFollowerCount({ followerCount: 11300 }, undefined), 11300);
+  for (const bad of [11282, "11.2K", "", "-1", null]) {
+    assert.equal(tiktokFollowerCount({ followerCount: 11300 }, { followerCount: bad }), 11300);
+  }
+  assert.throws(() => tiktokFollowerCount({}, { followerCount: "9".repeat(30) }));
+  assert.throws(() => tiktokFollowerCount(undefined, undefined));
+  const userInfo = {
+    user: { uniqueId: "test" },
+    stats: { followerCount: 11300 },
+    statsV2: { followerCount: "11282" },
+  };
+  const modern = { __DEFAULT_SCOPE__: { "webapp.user-detail": { userInfo } } };
+  assert.equal(parseTikTokProfile(`<script>${JSON.stringify(modern)}</script>`, "test"), 11282);
+  const legacy = {
+    UserModule: {
+      users: { 1: { uniqueId: "test" } },
+      stats: { 1: { followerCount: 11300 } },
+      statsV2: { 1: { followerCount: "11282" } },
+    },
+  };
+  assert.equal(parseTikTokProfile(`<script>${JSON.stringify(legacy)}</script>`, "test"), 11282);
+});
+
+test("TikTok API response uses the exact count without fetching the profile", async () => {
+  let calls = 0;
+  const fetchers = createFetchers({
+    env: { TIKTOK_USERNAME: "test" },
+    fetchImpl: async () => {
+      calls++;
+      return {
+        ok: true,
+        json: async () => ({
+          userInfo: {
+            user: { uniqueId: "Test" },
+            stats: { followerCount: 11300 },
+            statsV2: { followerCount: "11282" },
+          },
+        }),
+      };
+    },
+  });
+  assert.equal(await fetchers.tiktok(), 11282);
+  assert.equal(calls, 1);
+});
+
+test("TikTok works without a session cookie and retries anonymously when the cookie fails", async () => {
+  const profile =
+    '<script>{"__DEFAULT_SCOPE__":{"webapp.user-detail":{"userInfo":{"user":{"uniqueId":"test"},"statsV2":{"followerCount":"42"}}}}}</script>';
+  const seen = [];
+  const fetchImpl = async (_url, options) => {
+    seen.push(options.headers.Cookie);
+    if (options.headers.Cookie) return { ok: false, status: 403 };
+    return { ok: true, json: async () => ({}), text: async () => profile };
+  };
+  const anonymous = createFetchers({ env: { TIKTOK_USERNAME: "test" }, fetchImpl });
+  assert.equal(await anonymous.tiktok(), 42);
+  assert.deepEqual(seen, [undefined, undefined]);
+  seen.length = 0;
+  const expired = createFetchers({
+    env: { TIKTOK_SESSION_ID: "test-fixture", TIKTOK_USERNAME: "test" },
+    fetchImpl,
+  });
+  assert.equal(await expired.tiktok(), 42);
+  assert.deepEqual(seen, [
+    "sessionid=test-fixture",
+    "sessionid=test-fixture",
+    undefined,
+    undefined,
+  ]);
 });

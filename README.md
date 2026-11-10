@@ -42,11 +42,11 @@ Configure the relevant repository Actions secrets:
 
 - YouTube: `YT_API_KEY`, `YT_CHANNEL_ID`.
 - Instagram: `IG_ACCESS_TOKEN`, `IG_USER_ID`.
-- TikTok: `TIKTOK_SESSION_ID`, `TIKTOK_MS_TOKEN`, `TIKTOK_USERNAME`.
+- TikTok: `TIKTOK_USERNAME`. Optional: `TIKTOK_SESSION_ID`, `TIKTOK_MS_TOKEN`.
 - Bluesky: `BSKY_HANDLE`.
 - Facebook: `FB_PAGE_ACCESS_TOKEN`, `FB_PAGE_ID`.
 
-Never put credential values in code, issue reports, screenshots, commit messages, or logs. TikTok's web endpoint and matching-profile HTML fallback are sensitive to upstream changes; failures retain the cached count. Optional `META_GRAPH_VERSION` selects the Graph API version in the updater environment.
+Never put credential values in code, issue reports, screenshots, commit messages, or logs. TikTok's web endpoint and matching-profile HTML fallback are sensitive to upstream changes; failures retain the cached count. The updater reads the exact `statsV2.followerCount` and falls back to the rounded `stats.followerCount`. The session cookie is optional: the updater tries it first when set, then retries anonymously. Optional `META_GRAPH_VERSION` selects the Graph API version in the updater environment.
 
 Invalid counts and individual API failures preserve the last successful count and timestamp. Partial failures generate a warning and platform summary. If every platform fails, the job fails and leaves the cached file unchanged. The page identifies cached or partial data using each platform's successful update time. Combined followers sums platform counts and does not represent unique people or audience reach.
 
