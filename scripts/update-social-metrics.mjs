@@ -64,6 +64,13 @@ export function countFrom(value) {
   return count;
 }
 
+// TikTok rounds stats.followerCount (11300); statsV2 carries the exact count as a digit string.
+export function tiktokFollowerCount(stats, statsV2) {
+  const exact = statsV2?.followerCount;
+  if (typeof exact === "string" && /^\d+$/.test(exact)) return countFrom(exact);
+  return countFrom(stats?.followerCount);
+}
+
 export function parseTikTokProfile(html, username) {
   for (const script of elements(html).filter((node) => node.tagName === "script")) {
     let data;
@@ -74,13 +81,13 @@ export function parseTikTokProfile(html, username) {
     }
     const info = data?.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.userInfo;
     if (info?.user?.uniqueId?.toLowerCase() === username.toLowerCase()) {
-      return countFrom(info.stats?.followerCount);
+      return tiktokFollowerCount(info.stats, info.statsV2);
     }
     const users = data?.UserModule?.users;
     if (users) {
       for (const [id, user] of Object.entries(users)) {
         if (user.uniqueId?.toLowerCase() === username.toLowerCase()) {
-          return countFrom(data.UserModule.stats?.[id]?.followerCount);
+          return tiktokFollowerCount(data.UserModule.stats?.[id], data.UserModule.statsV2?.[id]);
         }
       }
     }
@@ -116,33 +123,39 @@ export function createFetchers({ env = process.env, fetchImpl = fetch, timeoutMs
       return countFrom(data?.followers_count);
     },
     tiktok: async () => {
-      required("TIKTOK_SESSION_ID");
       const username = env.TIKTOK_USERNAME || "seeknay747";
-      const headers = {
-        Cookie: `sessionid=${env.TIKTOK_SESSION_ID}`,
+      const browser = {
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
         Referer: "https://www.tiktok.com/",
       };
-      try {
-        const data = await request(
-          `https://www.tiktok.com/api/user/detail/?uniqueId=${encodeURIComponent(username)}&msToken=${encodeURIComponent(env.TIKTOK_MS_TOKEN || "")}`,
-          headers
-        );
-        const info = data?.userInfo;
-        if (info?.user?.uniqueId?.toLowerCase() === username.toLowerCase()) {
-          const count = countFrom(info?.stats?.followerCount);
-          if (validCount(count)) return count;
+      async function attempt(headers) {
+        try {
+          const data = await request(
+            `https://www.tiktok.com/api/user/detail/?uniqueId=${encodeURIComponent(username)}&msToken=${encodeURIComponent(env.TIKTOK_MS_TOKEN || "")}`,
+            headers
+          );
+          const info = data?.userInfo;
+          if (info?.user?.uniqueId?.toLowerCase() === username.toLowerCase()) {
+            return tiktokFollowerCount(info.stats, info.statsV2);
+          }
+        } catch {
+          // All API failures use the matching profile's embedded statistics as a fallback.
         }
-      } catch {
-        // All API failures use the matching profile's embedded statistics as a fallback.
+        const html = await request(
+          `https://www.tiktok.com/@${encodeURIComponent(username)}`,
+          headers,
+          "text"
+        );
+        return parseTikTokProfile(html, username);
       }
-      const html = await request(
-        `https://www.tiktok.com/@${encodeURIComponent(username)}`,
-        headers,
-        "text"
-      );
-      return parseTikTokProfile(html, username);
+      // The profile is public, so the session cookie is optional and an expired one must not block.
+      if (!env.TIKTOK_SESSION_ID) return attempt(browser);
+      try {
+        return await attempt({ ...browser, Cookie: `sessionid=${env.TIKTOK_SESSION_ID}` });
+      } catch {
+        return attempt(browser);
+      }
     },
     bluesky: async () => {
       required("BSKY_HANDLE");
