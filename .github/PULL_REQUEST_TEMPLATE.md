@@ -1,6 +1,6 @@
 ## Description
 
-Please include a summary of the change and which issue is fixed.
+What changed, why, and which issue it fixes.
 
 ## Type of Change
 
@@ -11,9 +11,9 @@ Please include a summary of the change and which issue is fixed.
 
 ## Checklist
 
-- [ ] My code follows the style guidelines of this project
+- [ ] `npm run format` leaves no changes
 - [ ] Independent Codex code/security review is recorded for the exact candidate SHA
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
+- [ ] Documentation is updated where behavior changed
+- [ ] Any UX change was approved by the owner first
+- [ ] The diff contains no secrets or personal data
 - [ ] `npm run check:local` results are recorded for the exact candidate SHA

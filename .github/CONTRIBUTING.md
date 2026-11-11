@@ -1,35 +1,35 @@
 # Contributing to seeknay-links
 
-First off, thanks for taking the time to contribute!
+Thanks for taking the time to help.
 
-## How to Contribute
+Building your own page? You do not need to contribute anything back. Fork the repository and follow the [customization guide](../docs/customizing.md).
 
-1. **Fork the repository**
-2. **Create a new branch** (`git checkout -b feature/amazing-feature`)
-3. **Make your changes**
-4. **Run local checks** (`npm ci --ignore-scripts`, install Chromium and lychee, then `npm run check:local`)
-5. **Commit your changes** (`git commit -m 'feat: Add amazing feature'`)
-6. **Run browser checks** (`npx playwright install chromium && npm run test:browser`)
-7. **Push to the branch** (`git push origin feature/amazing-feature`)
-8. **Open a Pull Request** with the exact candidate SHA, local check results and independent native Codex code/security review. Fix blocking findings and refresh evidence after source changes. Hosted CodeQL remains a separate required security check.
+## Sending a change
 
-## Coding Standards
+1. Fork the repository and create a branch (`git checkout -b fix/short-description`).
+2. Make your change. Changes to `assets/links.json` also need `npm run sync-links`.
+3. Run `npm run format`.
+4. Run the local checks: `npm ci --ignore-scripts`, `npx playwright install chromium`, install the [lychee](https://github.com/lycheeverse/lychee) CLI, then `npm run check:local`.
+5. Review the staged diff for private data, then commit and push.
+6. Open a pull request with the exact candidate commit and your local check results.
 
-- Every UX change requires explicit approval from the repository owner before implementation or publication. This includes changes to visible copy, layout, styling, controls, and interaction behavior. General repair instructions do not authorize UX changes. Present the proposed change and wait for approval.
-- Keep the site clean, simple, fast, and mobile first. Favor essential content and compact layouts.
-- Always spell the brand `seeknay` in lowercase, including copy, metadata, shared text, artwork, and profile links.
-- We use **ESLint** and **Prettier** to maintain code quality.
-- Run `npm run format` to automatically format your code before committing.
-- Ensure all links are valid.
+## What happens next
 
-## Reporting Bugs
+Every code change gets an independent Codex code and security review on the exact candidate commit before merge. Hosted CodeQL is a separate required check. A changed candidate needs fresh results.
 
-Please include:
+## Ground rules
 
-- A clear description of the issue
-- Steps to reproduce
-- Browser and OS version
+- **UX changes need approval first.** Visible copy, layout, styling, controls and interaction behavior all count. Open an issue describing the change and wait for the owner's approval before building it.
+- Keep the site clean, simple, fast and mobile first.
+- Spell the brand `seeknay` in lowercase everywhere.
+- This repository is public. Keep secrets, credentials and personal data out of code, commits, issues and pull requests.
 
-Changes to `assets/links.json` require `npm run sync-links`. Review the staged diff for private data before committing. Keep commit messages and PR descriptions focused on the public implementation.
+## Reporting bugs
 
-After merging a PR, remove its completed feature branch and clean worktree. For squash merges, verify that the local branch tip matches the merged PR head and that the PR merge commit is in `main`. Preserve uncommitted work and private handoff notes before cleanup. Keep active and automated branches.
+Use the [issue form](https://github.com/pbuffolino/seeknay-links/issues/new/choose). Include a clear description, steps to reproduce, and your browser and operating system.
+
+Report security problems privately. See the [security policy](SECURITY.md).
+
+## For maintainers
+
+After merging a pull request, remove its feature branch and worktree. For squash merges, verify that the local branch tip matches the merged pull request head and that the merge commit is in `main`. Preserve uncommitted work and private notes before cleanup. Keep active and automated branches.

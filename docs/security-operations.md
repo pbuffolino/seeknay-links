@@ -1,5 +1,7 @@
 # Security and health operations
 
+How this repository is validated, published and reviewed. For setup, see the [customization guide](customizing.md), [follower metrics](metrics.md) and [edge and header configuration](edge-configuration.md).
+
 ## Local code validation and Codex review
 
 Owner policy, November 3, 2026: run code checks locally and obtain independent native
@@ -76,7 +78,7 @@ private findings into public issues or PRs. Report vulnerabilities privately thr
 
 ## Origin TLS and repair boundaries
 
-The edge configuration is in `config/`. Verify the deployed settings independently before
+The edge configuration is in `config/` and described in [edge and header configuration](edge-configuration.md). Verify the deployed settings independently before
 changing them. Full TLS encrypts the origin connection without validating its certificate.
 Full (strict) requires a valid certificate for the custom hostname. Coordinate certificate
 provisioning and DNS changes before switching modes; an invalid origin certificate can break
