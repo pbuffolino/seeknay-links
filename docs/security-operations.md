@@ -61,7 +61,7 @@ npm run health:live
 The live check is read-only. It verifies HTTP redirection, HTTPS, homepage and nested 404
 headers, deployed HTML and resources against the checkout, per-platform metrics freshness,
 and absence of an injected analytics beacon. It reports the Pages origin certificate as an
-accepted risk without failing (#186). A nonzero exit requires review. A successful metrics job
+accepted risk (#186); other origin TLS failures fail the check. A nonzero exit requires review. A successful metrics job
 does not prove every platform updated successfully.
 
 Also inspect current GitHub settings, open Dependabot and code-scanning alerts, the most recent

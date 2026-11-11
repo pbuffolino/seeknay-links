@@ -7,8 +7,8 @@ const origin = "https://links.seeknay.com";
 const now = Date.now();
 let failures = 0;
 // Accepted risk (#186): Cloudflare uses Full TLS, which encrypts the origin connection without
-// validating it, and Pages has no certificate for the custom hostname. Report the state without
-// failing. A validating origin means Full (strict) can be planned.
+// validating it, and Pages has no certificate for the custom hostname. Only that hostname mismatch
+// is accepted; any other probe failure needs review.
 // Started first so the handshake overlaps the HTTP checks.
 const originProbe = new Promise((resolve) => {
   // Connect directly to the public Pages origin while validating the custom-domain SNI.
@@ -23,9 +23,9 @@ const originProbe = new Promise((resolve) => {
     socket.destroy();
     resolve(result);
   };
-  socket.once("secureConnect", () => done(true));
-  socket.once("error", () => done(false));
-  socket.once("timeout", () => done(false));
+  socket.once("secureConnect", () => done("valid"));
+  socket.once("error", (error) => done(error.code));
+  socket.once("timeout", () => done("timeout"));
 });
 async function check(name, run) {
   try {
@@ -112,9 +112,13 @@ await check("All platform metrics have successful updates within 48 hours", asyn
     })
   );
 });
-console.log(
-  (await originProbe)
-    ? "INFO: Pages origin certificate now validates the custom hostname; Full (strict) can be planned"
-    : "ACCEPTED RISK: Pages origin certificate does not validate the custom hostname (Full TLS, #186)"
-);
+const originState = await originProbe;
+if (originState === "valid") {
+  console.log("INFO: Pages origin certificate validates the custom hostname; plan Full (strict)");
+} else if (originState === "ERR_TLS_CERT_ALTNAME_INVALID") {
+  console.log("ACCEPTED RISK: Pages origin certificate lacks the custom hostname (Full TLS, #186)");
+} else {
+  failures++;
+  console.error(`REVIEW: Pages origin TLS probe failed unexpectedly (${originState})`);
+}
 process.exitCode = failures ? 1 : 0;
