@@ -22,7 +22,7 @@ async function loadLinks() {
   if (retry) retry.disabled = true;
   try {
     const response = await fetch("assets/links.json", {
-      cache: "no-store",
+      cache: "no-cache",
       signal: AbortSignal.timeout(10000),
     });
     if (!response.ok) throw new Error("Links unavailable");
@@ -38,7 +38,6 @@ async function loadLinks() {
       anchor.target = "_blank";
       anchor.rel = "noopener noreferrer";
       anchor.dataset.linkName = link.name;
-      anchor.dataset.linkUrl = link.url;
       const main = document.createElement("span");
       main.className = "link-main";
       const icon = document.createElement("i");

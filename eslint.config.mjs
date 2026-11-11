@@ -1,6 +1,5 @@
 import js from "@eslint/js";
 import globals from "globals";
-import html from "eslint-plugin-html";
 
 export default [
   { ignores: [".claude/", ".worktrees/"] },
@@ -14,9 +13,6 @@ export default [
         ...globals.browser,
         ...globals.node,
       },
-    },
-    plugins: {
-      html,
     },
     rules: {
       "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],

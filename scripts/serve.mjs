@@ -16,12 +16,13 @@ http
   .createServer(async (request, response) => {
     try {
       const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-      const filename = path.resolve(root, "." + (pathname === "/" ? "/index.html" : pathname));
+      const requested = pathname === "/" ? "/index.html" : pathname;
+      const filename = path.resolve(root, "." + requested);
       if (!filename.startsWith(root + path.sep) || /(?:^|\/)\./.test(pathname))
         throw new Error("Invalid path");
       const allowed =
         /^(?:\/index.html|\/404.html|\/favicon.ico|\/css\/[\w.-]+|\/js\/[\w.-]+|\/assets\/(?:icons\/)?[\w.-]+)$/;
-      if (!allowed.test(pathname === "/" ? "/index.html" : pathname)) throw new Error("Not public");
+      if (!allowed.test(requested)) throw new Error("Not public");
       const data = await fs.readFile(filename);
       response.writeHead(200, {
         "Content-Type": types[path.extname(filename)] || "application/octet-stream",

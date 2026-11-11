@@ -11,7 +11,8 @@ Link-in-bio static site deployed to GitHub Pages at links.seeknay.com. No build 
 ## Development Commands
 
 ```bash
-npm run lint          # ESLint + Prettier check (also what `npm test` runs)
+npm test              # Lint, unit tests and site validation
+npm run check:local   # Full local gate (also audit, browser tests, link check)
 npm run format        # Auto-fix formatting with Prettier
 npm run update-metrics  # Fetch live follower counts (requires env vars; normally runs via GitHub Actions)
 ```

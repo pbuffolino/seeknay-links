@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import tls from "node:tls";
-import { publicHtmlFingerprint } from "./html.mjs";
+import { publicHtmlFingerprint, VERSIONED_ASSETS } from "./html.mjs";
+import { NETWORKS, validCount } from "./update-social-metrics.mjs";
 
 const origin = "https://links.seeknay.com";
 const now = Date.now();
@@ -57,25 +58,18 @@ await check("Nested 404 has the saved error page and security headers", async ()
 });
 // Only literal public paths are sent over the network. Never derive request URLs from local files.
 const resources = [
+  ...VERSIONED_ASSETS,
   "assets/links.json",
   "robots.txt",
   "sitemap.xml",
   "assets/og.png",
-  "favicon.ico",
-  "assets/favicon-32.png",
-  "assets/favicon.svg",
-  "css/styles.css",
-  "js/ui.js",
-  "js/analytics.js",
-  "js/followers.js",
-  "js/links.js",
   "assets/avatar-96.jpg",
   "assets/avatar-192.jpg",
 ];
 for (const resource of resources) {
-  await check(`Published resource matches this checkout: ${resource.split("?")[0]}`, async () => {
+  await check(`Published resource matches this checkout: ${resource}`, async () => {
     const response = await get(`/${resource}`);
-    const expected = await fs.readFile(resource.split("?")[0]);
+    const expected = await fs.readFile(resource);
     return response.status === 200 && Buffer.from(await response.arrayBuffer()).equals(expected);
   });
 }
@@ -84,12 +78,11 @@ await check("All platform metrics have successful updates within 48 hours", asyn
   const metrics = await response.json();
   return (
     response.status === 200 &&
-    ["youtube", "instagram", "tiktok", "bluesky", "facebook"].every((network) => {
+    NETWORKS.every((network) => {
       const value = metrics[network];
       const age = now - Date.parse(value?.lastSuccessAt);
       return (
-        Number.isSafeInteger(value?.count) &&
-        value.count >= 0 &&
+        validCount(value?.count) &&
         !value.lastError &&
         Number.isFinite(age) &&
         age >= -5 * 60 * 1000 &&

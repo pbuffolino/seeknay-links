@@ -1,4 +1,23 @@
+import fs from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { parse } from "parse5";
+
+// Local files whose content hash is appended as ?v= in index.html and 404.html.
+export const VERSIONED_ASSETS = [
+  "css/styles.css",
+  "js/ui.js",
+  "js/analytics.js",
+  "js/followers.js",
+  "js/links.js",
+  "favicon.ico",
+  "assets/favicon-32.png",
+  "assets/favicon.svg",
+];
+export const assetHash = async (asset) =>
+  createHash("sha256")
+    .update(await fs.readFile(asset))
+    .digest("hex")
+    .slice(0, 12);
 
 export function elements(source) {
   const result = [];
@@ -52,4 +71,35 @@ export function publicHtmlFingerprint(source) {
     ];
   }
   return JSON.stringify(canonical(parse(source)));
+}
+
+export const canonicalUrl = (source) =>
+  attributes(
+    elements(source).find((node) => node.tagName === "link" && attributes(node).rel === "canonical")
+  ).href;
+
+const escapeHtml = (value) =>
+  String(value).replace(
+    /[&<>"']/g,
+    (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]
+  );
+
+export const GENERATED_LINKS = /<!-- generated-links:start -->[\s\S]*?<!-- generated-links:end -->/;
+
+export function fallbackMarkup(links) {
+  return links
+    .map(
+      (
+        link
+      ) => `          <a class="link-button delay-${link.delay}" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" data-link-name="${escapeHtml(link.name)}">
+            <span class="link-main">
+              <i class="${escapeHtml(link.icon)} link-icon" aria-hidden="true"></i>
+              <span class="link-info-group">
+                <span class="link-label">${escapeHtml(link.name)}</span>${link.networkId ? `\n                <span class="link-followers" data-network="${escapeHtml(link.networkId)}"></span>` : ""}
+              </span>
+            </span>
+            <i class="fa-solid fa-arrow-up-right-from-square link-arrow" aria-hidden="true"></i>
+          </a>`
+    )
+    .join("\n");
 }
