@@ -13,7 +13,11 @@ import {
   createFetchers,
   NETWORKS,
 } from "../scripts/update-social-metrics.mjs";
-import { matchingRun, safeMetricsPR } from "../scripts/publish-metrics.mjs";
+import {
+  matchingRun,
+  safeMetricsPR,
+  NETWORKS as PUBLISHED_NETWORKS,
+} from "../scripts/publish-metrics.mjs";
 const now = "2026-01-02T00:00:00.000Z";
 const cached = { count: 25, lastSuccessAt: "2026-01-01T00:00:00.000Z", display: "25 followers" };
 for (const count of [
@@ -241,4 +245,8 @@ test("TikTok works without a session cookie and retries anonymously when the coo
     undefined,
     undefined,
   ]);
+});
+
+test("Publisher network list matches the collector", () => {
+  assert.deepEqual([...PUBLISHED_NETWORKS].sort(), [...NETWORKS].sort());
 });

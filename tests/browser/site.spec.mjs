@@ -93,10 +93,11 @@ test("declining analytics persists and privacy settings remains available", asyn
 });
 test("no JavaScript keeps all navigation and hides unavailable dynamic controls", async ({
   browser,
+  baseURL,
 }) => {
-  const context = await browser.newContext({ javaScriptEnabled: false });
+  const context = await browser.newContext({ javaScriptEnabled: false, baseURL });
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:4175/");
+  await page.goto("/");
   await expect(page.locator("#links-container a")).toHaveCount(links.length);
   await expect(page.locator(".stats-card")).toBeHidden();
   await expect(page.locator("#privacy-settings")).toBeHidden();
@@ -107,7 +108,7 @@ test("nested 404 loads its assets and stays on the missing URL", async ({ page }
   await page.route("https://links.seeknay.com/**", async (route) => {
     const url = new URL(route.request().url());
     assets.push(url.pathname);
-    const response = await page.request.get("http://127.0.0.1:4175" + url.pathname);
+    const response = await page.request.get(url.pathname);
     await route.fulfill({ response });
   });
   const response = await page.goto("https://links.seeknay.com/missing/nested/path");
@@ -135,7 +136,9 @@ test("mobile layout fits and clipboard sharing gives feedback", async ({ page, c
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("button", { name: "Share Profile" }).click();
   await expect(page.locator("#ui-toast")).toHaveText("Link copied to clipboard!");
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("http://127.0.0.1:4175/");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    new URL("/", page.url()).href
+  );
 });
 
 test("saved acceptance loads analytics once and revocation survives reload", async ({ page }) => {

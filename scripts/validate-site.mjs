@@ -1,41 +1,39 @@
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { elements, attributes, text } from "./html.mjs";
+import {
+  elements,
+  attributes,
+  text,
+  canonicalUrl,
+  fallbackMarkup,
+  publicHtmlFingerprint,
+  GENERATED_LINKS,
+  VERSIONED_ASSETS,
+  assetHash,
+} from "./html.mjs";
+import { NETWORKS, validCount } from "./update-social-metrics.mjs";
 
 const links = JSON.parse(await fs.readFile("assets/links.json", "utf8"));
-const networks = ["tiktok", "youtube", "instagram", "bluesky", "facebook"];
 assert(Array.isArray(links) && links.length > 0, "Links must be a nonempty array");
 const html = await fs.readFile("index.html", "utf8");
-const nav = html.match(/<nav[^>]+id="links-container"[\s\S]*?<\/nav>/)[0];
-const savedLinks = [...nav.matchAll(/<a\b([\s\S]*?)>/g)].map((match) => match[1]);
-assert.equal(savedLinks.length, links.length, "Run npm run sync-links after editing links.json");
-for (const [index, link] of links.entries()) {
+for (const link of links) {
   assert(typeof link.name === "string" && link.name.trim() && link.name.length <= 100);
   const url = new URL(link.url);
   assert(["http:", "https:"].includes(url.protocol) && !url.username && !url.password);
   assert(/^(fa-brands|fa-solid) fa-[a-z-]+$/.test(link.icon));
   assert([0, 50, 100, 150, 200, 250].includes(link.delay));
-  assert(link.networkId === null || networks.includes(link.networkId));
-  const escape = (value) =>
-    value
-      .replace(/&/g, "&amp;")
-      .replace(/"/g, "&quot;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/'/g, "&#39;");
-  assert(
-    savedLinks[index].includes(`href="${escape(link.url)}"`) &&
-      savedLinks[index].includes(`data-link-name="${escape(link.name)}"`) &&
-      savedLinks[index].includes(`delay-${link.delay}`),
-    "Saved links must match links.json"
-  );
+  assert(link.networkId === null || NETWORKS.includes(link.networkId));
   await fs.access(`assets/icons/${link.icon.split(" fa-")[1]}.svg`);
 }
+assert.equal(
+  publicHtmlFingerprint(html.match(GENERATED_LINKS)[0]),
+  publicHtmlFingerprint(fallbackMarkup(links)),
+  "Saved links must match links.json; run npm run sync-links"
+);
 const metrics = JSON.parse(await fs.readFile("assets/social-metrics.json", "utf8"));
-for (const network of networks) {
+for (const network of NETWORKS) {
   const metric = metrics[network];
-  assert(Number.isSafeInteger(metric?.count) && metric.count >= 0, `Invalid ${network} count`);
+  assert(validCount(metric?.count), `Invalid ${network} count`);
   assert(Number.isFinite(Date.parse(metric.lastSuccessAt)), `Missing ${network} freshness`);
 }
 for (const filename of ["index.html", "404.html"]) {
@@ -55,7 +53,7 @@ for (const filename of ["index.html", "404.html"]) {
     }
   }
 }
-const canonical = html.match(/<link rel="canonical" href="([^"]+)"/)[1];
+const canonical = canonicalUrl(html);
 const notFound = await fs.readFile("404.html", "utf8");
 for (const filename of [
   "index.html",
@@ -80,20 +78,8 @@ assert.equal(image.readUInt32BE(20), 630);
 assert(image.length > 10000, "Social preview must contain real artwork");
 console.log("Site data, saved navigation, CSP markup, 404 assets, and social preview validated");
 
-for (const asset of [
-  "css/styles.css",
-  "js/ui.js",
-  "js/analytics.js",
-  "js/followers.js",
-  "js/links.js",
-  "favicon.ico",
-  "assets/favicon-32.png",
-  "assets/favicon.svg",
-]) {
-  const hash = createHash("sha256")
-    .update(await fs.readFile(asset))
-    .digest("hex")
-    .slice(0, 12);
+for (const asset of VERSIONED_ASSETS) {
+  const hash = await assetHash(asset);
   assert(html.includes(`${asset}?v=${hash}`), `Run npm run version-assets after changing ${asset}`);
   if (!asset.startsWith("js/")) assert(notFound.includes(`${asset}?v=${hash}`));
 }

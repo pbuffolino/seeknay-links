@@ -1,18 +1,21 @@
-/**
- * UI CONTROLLER
- * Handles Theme Toggling and Share functionality.
- */
 /* global gtag */
-
-// DOM Elements
+// Theme toggling and share functionality.
 const body = document.body;
-
-// Stored timeout ID for toast (prevents race condition on rapid clicks)
 let toastTimeout = null;
 
-/**
- * THEME MANAGEMENT
- */
+function applyTheme(isDark) {
+  body.classList.toggle("dark-mode", isDark);
+  const themeBtn = document.getElementById("theme-toggle");
+  const icon = themeBtn?.querySelector("i");
+  if (icon) {
+    icon.className = isDark ? "fa-solid fa-sun" : "fa-solid fa-moon";
+    themeBtn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+  }
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", getComputedStyle(body).getPropertyValue("--bg").trim());
+}
+
 function initTheme() {
   let savedTheme = null;
   try {
@@ -21,53 +24,20 @@ function initTheme() {
     // localStorage unavailable (e.g. Safari private browsing)
   }
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-  if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
-    body.classList.add("dark-mode");
-  }
+  applyTheme(savedTheme === "dark" || (!savedTheme && prefersDark));
 }
 
 function toggleTheme() {
-  body.classList.toggle("dark-mode");
-  const isDark = body.classList.contains("dark-mode");
-
+  const isDark = !body.classList.contains("dark-mode");
+  applyTheme(isDark);
   try {
     localStorage.setItem("theme", isDark ? "dark" : "light");
   } catch {
     // localStorage unavailable
   }
-
-  updateThemeIcon();
-  updateThemeColor();
-
   if (typeof gtag === "function") {
     gtag("event", "theme_toggle", { theme: isDark ? "dark" : "light" });
   }
-}
-
-function updateThemeIcon() {
-  const themeBtn = document.getElementById("theme-toggle");
-  if (!themeBtn) return;
-
-  const icon = themeBtn.querySelector("i");
-  if (!icon) return;
-
-  if (body.classList.contains("dark-mode")) {
-    icon.className = "fa-solid fa-sun";
-    themeBtn.setAttribute("aria-label", "Switch to light mode");
-  } else {
-    icon.className = "fa-solid fa-moon";
-    themeBtn.setAttribute("aria-label", "Switch to dark mode");
-  }
-}
-
-function updateThemeColor() {
-  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-  if (!metaThemeColor) return;
-  metaThemeColor.setAttribute(
-    "content",
-    body.classList.contains("dark-mode") ? "#0f172a" : "#f8fafc"
-  );
 }
 
 /**
@@ -118,35 +88,16 @@ function showToast(message) {
     toast.classList.add("show");
   });
 
-  // Clear any existing timeout to prevent premature hide on rapid clicks
-  if (toastTimeout) {
-    clearTimeout(toastTimeout);
-  }
-
-  toastTimeout = setTimeout(() => {
-    toast.classList.remove("show");
-    toastTimeout = null;
-  }, 2500);
+  // Restart the hide timer so rapid clicks don't hide the toast early.
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => toast.classList.remove("show"), 2500);
 }
 
 // Event Listeners
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelector(".header-actions")?.removeAttribute("hidden");
 
-  // 1. Initialize Theme
   initTheme();
-
-  // 2. Bind Theme Toggle
-  const themeBtn = document.getElementById("theme-toggle");
-  if (themeBtn) {
-    updateThemeIcon();
-    updateThemeColor();
-    themeBtn.addEventListener("click", toggleTheme);
-  }
-
-  // 3. Bind Share Button
-  const shareBtn = document.getElementById("share-profile");
-  if (shareBtn) {
-    shareBtn.addEventListener("click", shareProfile);
-  }
+  document.getElementById("theme-toggle")?.addEventListener("click", toggleTheme);
+  document.getElementById("share-profile")?.addEventListener("click", shareProfile);
 });

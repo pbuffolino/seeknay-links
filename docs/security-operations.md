@@ -6,9 +6,8 @@ How this repository is validated, published and reviewed. For setup, see the [cu
 
 Owner policy, November 3, 2026: run code checks locally and obtain independent native
 Codex review before merging code, configuration and dependency changes. Hosted CI
-and hourly dependency auto-merge/reconciliation workflows have been removed. The
-retired helper CLIs stop before any provider action; fixtures under
-`tests/fixtures/retired-workflows/` preserve historical safety regression cases.
+and hourly dependency auto-merge/reconciliation workflows have been removed, along with
+their helper scripts (see git history before November 2026 if needed).
 Dependabot alerts, security updates and routine update PRs remain enabled.
 
 Prepare locked tooling with `npm ci --ignore-scripts`, install Playwright Chromium

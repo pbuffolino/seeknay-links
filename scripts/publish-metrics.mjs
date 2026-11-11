@@ -5,7 +5,7 @@ import path from "node:path";
 
 const exec = promisify(execFile);
 const branch = "chore/update-social-metrics";
-async function gh(...args) {
+async function ghCli(...args) {
   try {
     const { stdout } = await exec("gh", args, { timeout: 60000, maxBuffer: 2 * 1024 * 1024 });
     return stdout;
@@ -40,6 +40,10 @@ export function safeMetricsPR(pr, files, repo) {
     files[0].status === "modified"
   );
 }
+// The workflow runs a copy of this file in isolation, so it cannot import NETWORKS from
+// update-social-metrics.mjs; tests/metrics.test.mjs keeps the two lists equal.
+export const NETWORKS = ["youtube", "instagram", "tiktok", "bluesky", "facebook"];
+
 export function validateMetricsBlob(blob) {
   if (
     blob?.type !== "file" ||
@@ -62,17 +66,16 @@ export function validateMetricsBlob(blob) {
   } catch {
     throw new Error("Invalid metrics JSON");
   }
-  const networks = ["youtube", "instagram", "tiktok", "bluesky", "facebook"];
   const date = (item) => typeof item === "string" && Number.isFinite(Date.parse(item));
   if (
     !value ||
     Array.isArray(value) ||
     !date(value.updatedAt) ||
     !date(value.lastAttemptAt) ||
-    Object.keys(value).some((key) => ![...networks, "updatedAt", "lastAttemptAt"].includes(key))
+    Object.keys(value).some((key) => ![...NETWORKS, "updatedAt", "lastAttemptAt"].includes(key))
   )
     throw new Error("Invalid metrics document");
-  for (const network of networks) {
+  for (const network of NETWORKS) {
     const metric = value[network];
     if (
       !metric ||
@@ -95,19 +98,22 @@ export function validateMetricsBlob(blob) {
 export async function publishMetrics({
   repo = process.env.GITHUB_REPOSITORY,
   number = process.env.METRICS_PR,
-  request = gh,
+  request: gh = ghCli,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   now = Date.now,
 } = {}) {
-  const gh = request;
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo || "") || !/^\d+$/.test(number || ""))
     throw new Error("Invalid publication target");
-  const pr = JSON.parse(await gh("api", `repos/${repo}/pulls/${number}`));
-  const files = JSON.parse(await gh("api", `repos/${repo}/pulls/${number}/files`));
+  const loadPR = () =>
+    Promise.all(
+      [`repos/${repo}/pulls/${number}`, `repos/${repo}/pulls/${number}/files`].map(
+        async (endpoint) => JSON.parse(await gh("api", endpoint))
+      )
+    );
+  const [pr, files] = await loadPR();
   if (!safeMetricsPR(pr, files, repo)) throw new Error("Metrics PR contains unexpected changes");
   async function verifyUnchangedPR() {
-    const current = JSON.parse(await gh("api", `repos/${repo}/pulls/${number}`));
-    const currentFiles = JSON.parse(await gh("api", `repos/${repo}/pulls/${number}/files`));
+    const [current, currentFiles] = await loadPR();
     if (!safeMetricsPR(current, currentFiles, repo) || current.head.sha !== pr.head.sha)
       throw new Error("Metrics PR changed during publication");
   }
@@ -116,9 +122,8 @@ export async function publishMetrics({
     await gh("api", `repos/${repo}/contents/assets/social-metrics.json?ref=${pr.head.sha}`)
   );
   validateMetricsBlob(content);
-  const startedAt = now();
   console.log("Metrics data validated; waiting for exact-head CodeQL");
-  const deadline = startedAt + 10 * 60 * 1000;
+  const deadline = now() + 10 * 60 * 1000;
   let codeql;
   const approvedRuns = new Set();
   while (now() < deadline) {
@@ -128,33 +133,18 @@ export async function publishMetrics({
         `repos/${repo}/actions/runs?branch=${branch}&event=pull_request&head_sha=${pr.head.sha}&per_page=100`
       )
     );
-    codeql = matchingRun(
-      response.workflow_runs,
-      pr.head.sha,
-      number,
-      ".github/workflows/codeql.yml"
-    );
-    for (const candidate of [codeql]) {
-      if (candidate?.conclusion !== "action_required") continue;
-      // Only the same-repository, metrics-only PR passed the guard above.
-      if (!approvedRuns.has(candidate.id)) {
-        await verifyUnchangedPR();
-        await gh("api", "--method", "POST", `repos/${repo}/actions/runs/${candidate.id}/approve`);
-        approvedRuns.add(candidate.id);
-        console.log("Approved a required workflow for the verified metrics-only PR");
-      }
+    codeql = matchingRun(response.workflow_runs, pr.head.sha, number);
+    // Only the same-repository, metrics-only PR passed the guard above.
+    if (codeql?.conclusion === "action_required" && !approvedRuns.has(codeql.id)) {
+      await verifyUnchangedPR();
+      await gh("api", "--method", "POST", `repos/${repo}/actions/runs/${codeql.id}/approve`);
+      approvedRuns.add(codeql.id);
+      console.log("Approved a required workflow for the verified metrics-only PR");
     }
-    const finished = [codeql].every(
-      (candidate) => candidate?.status === "completed" && candidate.conclusion !== "action_required"
-    );
-    if (finished) break;
+    if (codeql?.status === "completed" && codeql.conclusion !== "action_required") break;
     await sleep(10000);
   }
-  if (
-    ![codeql].every(
-      (candidate) => candidate?.status === "completed" && candidate.conclusion === "success"
-    )
-  )
+  if (codeql?.status !== "completed" || codeql.conclusion !== "success")
     throw new Error("Metrics commit CodeQL did not succeed");
   console.log("Metrics data and CodeQL passed; requesting protected merge");
   await verifyUnchangedPR();
@@ -173,15 +163,14 @@ export async function publishMetrics({
   if (!result.merged) throw new Error("Metrics merge was rejected");
   const merged = JSON.parse(await gh("api", `repos/${repo}/pulls/${number}`));
   if (!merged.merged) throw new Error("Metrics PR was not merged");
-  for (const workflow of ["codeql.yml"])
-    await gh(
-      "api",
-      "--method",
-      "POST",
-      `repos/${repo}/actions/workflows/${workflow}/dispatches`,
-      "-f",
-      "ref=main"
-    );
+  await gh(
+    "api",
+    "--method",
+    "POST",
+    `repos/${repo}/actions/workflows/codeql.yml/dispatches`,
+    "-f",
+    "ref=main"
+  );
   console.log("Merge verified; requesting Pages build");
   await gh("api", "--method", "POST", `repos/${repo}/pages/builds`);
   console.log("Merged verified metrics and requested Pages publication");

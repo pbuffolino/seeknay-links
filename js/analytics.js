@@ -14,7 +14,7 @@ function saveConsent(value) {
 
 function loadGA() {
   window[`ga-disable-${GA_ID}`] = false;
-  if (loaded || !GA_ID) return;
+  if (loaded) return;
   loaded = true;
   window.dataLayer = window.dataLayer || [];
   window.gtag = function () {
@@ -44,7 +44,6 @@ function revokeGA() {
 }
 
 function initConsent() {
-  if (!GA_ID) return;
   try {
     consent = localStorage.getItem(CONSENT_KEY);
   } catch {
