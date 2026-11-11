@@ -36,7 +36,7 @@ This security policy applies to:
 
 - Rate limiting issues
 - Social engineering attacks
-- Third-party services (Google Analytics, Font Awesome CDN)
+- Third-party services (Google Analytics, GitHub Pages, Cloudflare)
 - Denial of Service attacks
 
 ## Supported Versions
@@ -48,3 +48,5 @@ This security policy applies to:
 ## Acknowledgments
 
 We appreciate responsible disclosure and will acknowledge security researchers who help improve this project's security.
+
+Running your own fork? This policy covers the original repository and site only. You are responsible for the security of your own deployment.

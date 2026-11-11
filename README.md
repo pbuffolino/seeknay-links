@@ -1,84 +1,75 @@
-# seeknay Links
+<div align="center">
 
-A static link-in-bio site using HTML, CSS, JavaScript, and JSON. No framework or deployment build is required.
+<img src="assets/avatar-192.jpg" width="96" height="96" alt="seeknay" />
 
-[Live site](https://links.seeknay.com/) · [Report a bug or request a feature](https://github.com/pbuffolino/seeknay-links/issues/new/choose)
+# seeknay links
 
-![Preview of the links page](assets/preview.png)
+**A fast, tiny link-in-bio page you can make your own in ten minutes.**
 
-## Local development
+Plain HTML, CSS and JavaScript. No framework. No build step. Free to host.
 
-Use an HTTP server so the browser can fetch the JSON files:
+[**See it live**](https://links.seeknay.com/) · [Make it yours](#-make-it-yours) · [Report a bug](https://github.com/pbuffolino/seeknay-links/issues/new/choose)
+
+![License: MIT](https://img.shields.io/badge/license-MIT-2ea44f)
+![No build step](https://img.shields.io/badge/build%20step-none-blue)
+![Hosted on GitHub Pages](https://img.shields.io/badge/hosted%20on-GitHub%20Pages-222)
+
+</div>
+
+## ✨ What you get
+
+- ⚡ **Instant loads.** Static files served straight from GitHub Pages.
+- 🔗 **One file for your links.** Edit `assets/links.json` and you are done.
+- 📈 **Live follower counts.** An optional daily GitHub Action refreshes TikTok, YouTube, Instagram, Bluesky and Facebook totals.
+- 🌗 **Light and dark themes**, mobile first.
+- ♿ **Accessibility tested** in both themes, and the links still work with JavaScript turned off.
+- 🔒 **Private by default.** Strict Content Security Policy, local icons, and analytics that load only after a visitor says yes.
+
+## 🚀 Quick start
 
 ```bash
+git clone https://github.com/pbuffolino/seeknay-links.git
+cd seeknay-links
 npm ci
-npm run serve         # http://127.0.0.1:4173
-npm test              # lint, formatting, unit tests, and site validation
-npx playwright install chromium
-npm run test:browser  # accessibility and browser regression checks
-npm run format        # also refreshes content-based CSS/JS asset versions
+npm run serve   # http://127.0.0.1:4173
 ```
 
-Opening the HTML as a local file shows saved navigation, but dynamic metrics and link updates require HTTP.
+Use the local server instead of opening `index.html` directly. The page fetches its JSON over HTTP.
 
-## Fork and customize
+## 🎨 Make it yours
 
-- Edit the hero, spotlight, collaboration contact, title, descriptions, structured data, and social metadata in `index.html`.
-- Replace `assets/avatar.jpg` and the optimized 96px and 192px JPEG variants. Set your favicon and regenerate `assets/og.png` from the editable `assets/og.svg` at 1200 by 630 pixels. Update the preview screenshot when the design changes.
-- Edit `assets/links.json`, then run `npm run sync-links`. This updates the saved HTML navigation, which remains available without JavaScript or during network failures. Commit both files. Supported delay values are 0, 50, 100, 150, 200, and 250 milliseconds.
-- Icons are local SVGs in `assets/icons/`. Add an SVG and its CSS mask mapping before using a new `fa-*` class. Preserve the icon license and attribution.
-- Set the canonical URL in `index.html` to your full public base URL, including the repository path for a project site. Run `npm run sync-links` to update absolute 404 asset and return URLs. Update the remaining social URLs, `robots.txt`, `sitemap.xml`, and structured data to match.
-- Remove `CNAME` for the default GitHub Pages domain, or replace it with your custom hostname. Update repository links in this README, the footer, and issue templates.
-- Configure colors in `css/styles.css`. `--accent` is for text; `--accent-fill` is the background for controls with white text. Check contrast in both themes after changing them.
-- Set `GA_ID` in `js/analytics.js`, or set it to an empty string to disable Google Analytics. It loads only after acceptance. Privacy settings allows visitors to decline later. When storage is unavailable, consent applies only to the current page.
+Fork it, clone it, rename it. That is what it is here for.
 
-To deploy, select `main` and `/ (root)` in repository Settings → Pages. Enable HTTPS after configuring your domain. [GitHub Pages publishing documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+1. **Links.** Edit `assets/links.json`, then run `npm run sync-links`.
+2. **Identity.** Change the name, bio, titles and social metadata in `index.html`. Replace the avatar and share images in `assets/`.
+3. **Colors.** Adjust the custom properties at the top of `css/styles.css`.
+4. **Domain.** Put your hostname in `CNAME`, or delete the file to use the default GitHub Pages address. Update the canonical URL in `index.html`.
+5. **Analytics.** Set your own `GA_ID` in `js/analytics.js`, or set it to an empty string to turn analytics off.
+6. **Deploy.** In your repository, open Settings → Pages and publish `main` from `/ (root)`.
 
-## Metrics publication
+The [customization guide](docs/customizing.md) covers every step in detail. Follower counts need a few repository secrets, explained in the [metrics guide](docs/metrics.md).
 
-The scheduled workflow runs at 14:17 UTC. It fetches public follower totals, opens or updates one metrics-only PR, validates a bounded JSON schema at that exact SHA, waits for its CodeQL scan and requests a protected merge and Pages build. It cannot merge code changes. General code checks run locally with `npm run check:local`, with independent native Codex review before merge. The publisher retains the repository-scoped permissions needed for its generated-data PR, CodeQL approvals and Pages publication; no personal access token is required.
+## 🧰 Commands
 
-Configure the relevant repository Actions secrets:
+| Command                | What it does                                              |
+| ---------------------- | --------------------------------------------------------- |
+| `npm run serve`        | Serve the site locally                                    |
+| `npm run sync-links`   | Rebuild the saved navigation after editing `links.json`   |
+| `npm run format`       | Format the code and refresh asset version hashes          |
+| `npm test`             | Lint, unit tests and site validation                      |
+| `npm run test:browser` | Browser and accessibility checks (needs Playwright)       |
+| `npm run check:local`  | Everything above plus a dependency audit and link checker |
 
-- YouTube: `YT_API_KEY`, `YT_CHANNEL_ID`.
-- Instagram: `IG_ACCESS_TOKEN`, `IG_USER_ID`.
-- TikTok: `TIKTOK_USERNAME`. Optional: `TIKTOK_SESSION_ID`, `TIKTOK_MS_TOKEN`.
-- Bluesky: `BSKY_HANDLE`.
-- Facebook: `FB_PAGE_ACCESS_TOKEN`, `FB_PAGE_ID`.
+## 📚 More
 
-Never put credential values in code, issue reports, screenshots, commit messages, or logs. TikTok's web endpoint and matching-profile HTML fallback are sensitive to upstream changes; failures retain the cached count. The updater reads the exact `statsV2.followerCount` and falls back to the rounded `stats.followerCount`. The session cookie is optional: the updater tries it first when set, then retries anonymously. Optional `META_GRAPH_VERSION` selects the Graph API version in the updater environment.
+- [Customization guide](docs/customizing.md)
+- [Follower metrics](docs/metrics.md)
+- [Edge and header configuration](docs/edge-configuration.md)
+- [Security and health operations](docs/security-operations.md)
+- [Contributing](.github/CONTRIBUTING.md) · [Security policy](.github/SECURITY.md)
 
-Invalid counts and individual API failures preserve the last successful count and timestamp. Partial failures generate a warning and platform summary. If every platform fails, the job fails and leaves the cached file unchanged. The page identifies cached or partial data using each platform's successful update time. Combined followers sums platform counts and does not represent unique people or audience reach.
+## 📄 License
 
-Do not manually edit the auto-managed metrics file. To add a platform, update the link data, fetcher, supported-network lists, workflow secrets, and regression tests.
+[MIT](LICENSE). Use it, change it, ship it under your own name. Keep the license file, and please swap out my name, avatar, links and analytics ID before you publish.
 
-## Security and edge configuration
-
-See [security and health operations](docs/security-operations.md) for the local checks and Codex review
-policy, required protections, weekly review, and read-only live verification. Use `npm run health:live`
-from a fresh default-branch checkout to check the deployed site and origin TLS.
-
-CSS and JavaScript references include content hashes so cached files from an older release cannot mix with new HTML. Run `npm run format` or `npm run version-assets` after changing a runtime asset. JSON fetches bypass the browser cache.
-
-The HTML CSP restricts resource loading and forbids inline executable scripts, inline styles, and event handlers. Analytics destinations follow [Google's CSP guidance](https://developers.google.com/tag-platform/security/guides/csp). Local SVG icons avoid third-party font requests.
-
-Frame protection must be delivered as HTTP response headers. A meta CSP cannot enforce `frame-ancestors`. For the custom domain, apply `config/cloudflare-response-headers.json` as a host-specific Response Header Transform Rule in the `http_response_headers_transform` phase. Preserve other rules in the zone. Change the hostname when forking. [Cloudflare rule API documentation](https://developers.cloudflare.com/rules/transform/response-header-modification/create-api/).
-
-Apply `config/cloudflare-links-settings.json` as a host-specific Configuration Rule in the `http_config_settings` phase. It disables automatic Cloudflare Web Analytics injection for this hostname. The beacon has no site consent integration and is intentionally absent from the CSP allowlist. This configuration rule works without adding a Web Analytics exclusion rule. Preserve other zone rules and change the hostname when forking. [Cloudflare Configuration Rules documentation](https://developers.cloudflare.com/rules/configuration-rules/settings/).
-
-The configuration rule also uses Full TLS for the connection to the origin. Full encrypts that connection but does not validate the origin certificate. Use `strict` after the origin presents a trusted certificate for the custom hostname. GitHub Pages currently has no certificate for this hostname, so its HTTPS enforcement setting remains unavailable. Certificate recovery can require DNS changes; retain the proxy until a maintenance window is planned. [Cloudflare TLS modes](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/) and [GitHub Pages certificate provisioning](https://docs.github.com/en/pages/getting-started-with-github-pages/securing-your-github-pages-site-with-https).
-
-Both configuration files contain individual rule payloads. When creating a new zone ruleset through the API, put the payload in its `rules` array and supply the corresponding phase and `kind: "zone"`. Verify the deployed HTML contains no injected beacon, and test the headers on both the homepage and a nested 404.
-
-This repository is public. Review staged files and generated assets for private information before committing. Report vulnerabilities privately using [SECURITY.md](.github/SECURITY.md).
-
-## Files and checks
-
-- `assets/links.json`: canonical link data; `npm run sync-links` maintains saved navigation.
-- `assets/social-metrics.json`: workflow-managed counts and successful update times.
-- `index.html`, `404.html`, `css/`, `js/`: runtime site, served directly by Pages.
-- `scripts/`: updater, guarded publication, saved-link generation, validation, and local HTTP server.
-- `tests/`: metrics failure tests, publication guards, and browser/accessibility checks.
-- `.github/workflows/`: CodeQL and daily metrics publication. Code checks run locally; Codex reviews code before merge.
-
-[Contribution guide](.github/CONTRIBUTING.md). Site code is MIT licensed. The bundled Font Awesome SVGs are CC BY 4.0; see [their license](assets/icons/LICENSE.txt).
+The bundled Font Awesome icons are CC BY 4.0. See [their license](assets/icons/LICENSE.txt).

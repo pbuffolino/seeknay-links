@@ -36,7 +36,8 @@ npm run update-metrics  # Fetch live follower counts (requires env vars; normall
 
 ## CI/CD
 
-- **`ci.yml`** — Runs on every push/PR: lint → link-check (Lychee) → `npm audit`
+- Code checks run locally with `npm run check:local` (lint, unit tests, audit, browser tests, link check). Hosted general CI is retired; see `AGENTS.md`.
+- **`codeql.yml`** — Hosted code scanning
 - **`update-social-metrics.yml`** — Runs daily at 14:17 UTC; commits updated `social-metrics.json`
 
 ---
@@ -54,5 +55,5 @@ npm run update-metrics  # Fetch live follower counts (requires env vars; normall
 
 - `assets/social-metrics.json` is auto-managed by CI; manual edits will be overwritten on the next daily run
 - The CSP in `index.html` must be updated if new external script or style domains are added
-- `npm audit --audit-level=high` runs in CI — keep dependencies free of high/critical vulnerabilities
+- `npm audit --audit-level=low` runs in the local gate — keep dependencies free of high/critical vulnerabilities
 - **All changes should be reviewed for privacy/security risk before committing** — this is a public repository
