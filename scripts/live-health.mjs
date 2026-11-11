@@ -6,6 +6,27 @@ import { NETWORKS, validCount } from "./update-social-metrics.mjs";
 const origin = "https://links.seeknay.com";
 const now = Date.now();
 let failures = 0;
+// Accepted risk (#186): Cloudflare uses Full TLS, which encrypts the origin connection without
+// validating it, and Pages has no certificate for the custom hostname. Report the state without
+// failing. A validating origin means Full (strict) can be planned.
+// Started first so the handshake overlaps the HTTP checks.
+const originProbe = new Promise((resolve) => {
+  // Connect directly to the public Pages origin while validating the custom-domain SNI.
+  const socket = tls.connect({
+    host: "pbuffolino.github.io",
+    port: 443,
+    servername: "links.seeknay.com",
+    rejectUnauthorized: true,
+  });
+  socket.setTimeout(15000);
+  const done = (result) => {
+    socket.destroy();
+    resolve(result);
+  };
+  socket.once("secureConnect", () => done(true));
+  socket.once("error", () => done(false));
+  socket.once("timeout", () => done(false));
+});
 async function check(name, run) {
   try {
     if (!(await run())) throw new Error("Check failed");
@@ -91,30 +112,9 @@ await check("All platform metrics have successful updates within 48 hours", asyn
     })
   );
 });
-await check(
-  "GitHub Pages origin certificate validates the custom hostname",
-  () =>
-    new Promise((resolve) => {
-      // Connect directly to the public Pages origin while validating the custom-domain SNI.
-      const socket = tls.connect({
-        host: "pbuffolino.github.io",
-        port: 443,
-        servername: "links.seeknay.com",
-        rejectUnauthorized: true,
-      });
-      socket.setTimeout(15000);
-      socket.once("secureConnect", () => {
-        socket.destroy();
-        resolve(true);
-      });
-      socket.once("error", () => {
-        socket.destroy();
-        resolve(false);
-      });
-      socket.once("timeout", () => {
-        socket.destroy();
-        resolve(false);
-      });
-    })
+console.log(
+  (await originProbe)
+    ? "INFO: Pages origin certificate now validates the custom hostname; Full (strict) can be planned"
+    : "ACCEPTED RISK: Pages origin certificate does not validate the custom hostname (Full TLS, #186)"
 );
 process.exitCode = failures ? 1 : 0;

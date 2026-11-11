@@ -60,8 +60,9 @@ npm run health:live
 
 The live check is read-only. It verifies HTTP redirection, HTTPS, homepage and nested 404
 headers, deployed HTML and resources against the checkout, per-platform metrics freshness,
-absence of an injected analytics beacon, and the Pages origin certificate. A nonzero exit
-requires review. A successful metrics job does not prove every platform updated successfully.
+and absence of an injected analytics beacon. It reports the Pages origin certificate as an
+accepted risk without failing (#186). A nonzero exit requires review. A successful metrics job
+does not prove every platform updated successfully.
 
 Also inspect current GitHub settings, open Dependabot and code-scanning alerts, the most recent
 secret-scanning result available to the authenticated account, failed or stalled Actions runs,
@@ -81,7 +82,8 @@ The edge configuration is in `config/` and described in [edge and header configu
 changing them. Full TLS encrypts the origin connection without validating its certificate.
 Full (strict) requires a valid certificate for the custom hostname. Coordinate certificate
 provisioning and DNS changes before switching modes; an invalid origin certificate can break
-delivery. Do not mark this risk resolved merely because the public edge certificate works.
+delivery. Full TLS is the accepted architecture; see [origin TLS](edge-configuration.md#origin-tls).
+Do not mark the origin authenticated merely because the public edge certificate works.
 [Cloudflare Full TLS](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full/).
 
 Technical repairs use a narrowly scoped PR with local validation and independent Codex review. Every visible copy, styling, layout, control or interaction change needs explicit owner approval. Do not change credentials, DNS, TLS settings or alert dismissals during a routine review. Dependency updates now require the same local validation and Codex review as other code changes.
